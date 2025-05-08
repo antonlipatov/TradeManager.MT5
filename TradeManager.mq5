@@ -10,10 +10,6 @@
 #include  <Trade/OrderInfo.mqh>
 #include  <Trade/PositionInfo.mqh>
 #include  <ChartObjects/ChartObjectsTxtControls.mqh>
-
-#include "ChartButtons.mqh/"
-#include "Helper.mqh/"
-
 //Set order button
 #define SetOrderButton "Set Order Button"
 //Cancel Orders button
@@ -24,7 +20,9 @@
 #define SetSLButton "Set SL Button"
 //set TP button
 #define SetTPButton "Set TP Button"
-
+#include "ChartButtons.mqh/"
+#include "Helper.mqh/"
+ChartButtons chartButtons;
 //Inital visual chart setup
 void SetInitalVisualChartSettings(){
    ChartSetInteger(0, CHART_COLOR_BACKGROUND, C'20,23,23');
@@ -50,7 +48,9 @@ void SetInitalVisualChartSettings(){
 }
 int OnInit(){
    SetInitalVisualChartSettings();
+   chartButtons.CreateSetOrderButton();
    return(INIT_SUCCEEDED);
 }
 void OnDeinit(const int reason){
+   chartButtons.DeleteAll();
 }
