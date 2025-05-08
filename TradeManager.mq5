@@ -1,6 +1,16 @@
 //+------------------------------------------------------------------+
 //|                                                 TradeManager.mq5 |
 //+------------------------------------------------------------------+
+#include  <ChartObjects/ChartObjectsLines.mqh>
+#include  <Controls/Dialog.mqh>
+#include  <Controls/Button.mqh>
+#include  <Controls/Edit.mqh>
+#include <Controls/Label.mqh>
+#include  <Trade/Trade.mqh>
+#include  <Trade/OrderInfo.mqh>
+#include  <Trade/PositionInfo.mqh>
+#include  <ChartObjects/ChartObjectsTxtControls.mqh>
+#include "ChartButtons.mqh/"
 //Inital visual chart setup
 void SetInitalVisualChartSettings(){
    ChartSetInteger(0, CHART_COLOR_BACKGROUND, C'20,23,23');
