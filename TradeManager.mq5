@@ -54,3 +54,9 @@ int OnInit(){
 void OnDeinit(const int reason){
    chartButtons.DeleteAll();
 }
+void OnTrade(void){
+   chartButtons.OnTradeEvent();
+}
+void OnChartEvent(const int id,const long& lparam,const double& dparam,const string& sparam){
+   chartButtons.OnEvent(id, lparam, dparam, sparam);   
+}
