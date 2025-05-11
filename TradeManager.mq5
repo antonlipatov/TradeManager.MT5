@@ -1,28 +1,20 @@
 //+------------------------------------------------------------------+
 //|                                                 TradeManager.mq5 |
 //+------------------------------------------------------------------+
-#include  <ChartObjects/ChartObjectsLines.mqh>
 #include  <Controls/Dialog.mqh>
-#include  <Controls/Button.mqh>
 #include  <Controls/Edit.mqh>
 #include <Controls/Label.mqh>
 #include  <Trade/Trade.mqh>
 #include  <Trade/OrderInfo.mqh>
 #include  <Trade/PositionInfo.mqh>
-#include  <ChartObjects/ChartObjectsTxtControls.mqh>
-//Set order button
-#define SetOrderButton "Set Order Button"
-//Cancel Orders button
-#define  CancelOrdersButton "Cancel Orders Button"
-//close positions button
-#define ClosePositionsButton "Close Positions Button"
-//set SL button
-#define SetSLButton "Set SL Button"
-//set TP button
-#define SetTPButton "Set TP Button"
-#include "ChartButtons.mqh/"
+
 #include "Helper.mqh/"
+#include "ChartButtons.mqh/"
+#include "TradeLevels.mqh/"
+double entryPrice = 0.0;
+double stopLossPrice = 0.0;
 ChartButtons chartButtons;
+TradeLevels tradeLevels;
 //Inital visual chart setup
 void SetInitalVisualChartSettings(){
    ChartSetInteger(0, CHART_COLOR_BACKGROUND, C'20,23,23');
@@ -53,10 +45,12 @@ int OnInit(){
 }
 void OnDeinit(const int reason){
    chartButtons.DeleteAll();
+   tradeLevels.DeleteLevels();
 }
 void OnTrade(void){
    chartButtons.OnTradeEvent();
 }
 void OnChartEvent(const int id,const long& lparam,const double& dparam,const string& sparam){
-   chartButtons.OnEvent(id, lparam, dparam, sparam);   
+   chartButtons.OnEvent(id, lparam, dparam, sparam);
+   tradeLevels.OnEvent(id, lparam, dparam, sparam);   
 }

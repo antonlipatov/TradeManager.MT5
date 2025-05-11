@@ -1,14 +1,23 @@
 //+------------------------------------------------------------------+
 //|                                                 ChartButtons.mqh |
 //+------------------------------------------------------------------+
+#include  <Controls/Button.mqh>
+//Set order button
+#define SetOrderButton "Set Order Button"
+//Cancel Orders button
+#define  CancelOrdersButton "Cancel Orders Button"
+//close positions button
+#define ClosePositionsButton "Close Positions Button"
+//set SL button
+#define SetSLButton "Set SL Button"
+//set TP button
+#define SetTPButton "Set TP Button"
 class ChartButtons{
    private:
       bool _setOrderButtonClicked;
       bool _setOrderButtonClickedEvent;
       bool _setSLTPButtonClicked;
       bool _setSLTPButtonClickedEvent;
-      bool _setStopLossLevel;
-      bool _placingStopLossLevel;
       //Set order button
       CButton _btnSetOrder;
       //Cancel order button
@@ -19,6 +28,7 @@ class ChartButtons{
       CButton _btnSetSL;
       //set tp button
       CButton _btnSetTP;
+      
       void setOrderButtonClick();
    public:
       ChartButtons();
@@ -36,11 +46,9 @@ ChartButtons::ChartButtons(){
    _setOrderButtonClickedEvent = false;
    _setSLTPButtonClicked = false;
    _setSLTPButtonClickedEvent = false;
-   _setStopLossLevel = false;
-   _placingStopLossLevel = false;
 }
 ChartButtons::~ChartButtons(){
-   DeleteSetOrderButton();
+   DeleteAll();
 }
 void ChartButtons::OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam){
    if(id == CHARTEVENT_OBJECT_CLICK){
@@ -53,7 +61,9 @@ void ChartButtons::OnEvent(const int id,const long &lparam,const double &dparam,
             _setOrderButtonClickedEvent = false;
             return;
          }
-         //TODO: Add entry level   
+         _setOrderButtonClicked = false;
+         tradeLevels.PlacingEntryLevel = true;
+         UpdateSetOrderButton();  
       }
    }
 }
@@ -70,7 +80,17 @@ bool ChartButtons::CreateSetOrderButton(void){
    return false;
 }
 bool ChartButtons::UpdateSetOrderButton(void){
-   return true;
+   if(tradeLevels.PlacingEntryLevel){
+      _btnSetOrder.ColorBackground(clrGray);
+      ChartRedraw(0);
+      return true;
+      }
+   if(!tradeLevels.PlacingStoplossLevel){
+      _btnSetOrder.ColorBackground(clrWhite);
+      ChartRedraw(0);
+      return true;
+   }
+   return false;
 }
 bool ChartButtons::DeleteSetOrderButton(void){
    if(!Helper::IsObjectCreated(SetSLButton)) return false;
@@ -83,8 +103,6 @@ bool ChartButtons::DeleteAll(void){
    return true;
 }
 void ChartButtons::setOrderButtonClick(void){
-   if(!Helper::IsObjectCreated(SetOrderButton)) return;
-   if(_setStopLossLevel) return;
    _setOrderButtonClicked = !_setOrderButtonClicked;
    _setOrderButtonClickedEvent = true;
    if(_setOrderButtonClicked) _btnSetOrder.ColorBackground(clrLightBlue);
