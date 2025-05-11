@@ -8,13 +8,12 @@ class Helper{
      ~Helper();
      static bool IsObjectCreated(string objName);
      static datetime GetEndOfDay();
+
 };
 Helper::Helper(){
 }
-
 Helper::~Helper(){
 }
-
 bool Helper::IsObjectCreated(string objName){
    if(ObjectFind(0, objName) < 0) return false;
    return true;

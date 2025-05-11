@@ -4,11 +4,10 @@
 #include  <Controls/Dialog.mqh>
 #include  <Controls/Edit.mqh>
 #include <Controls/Label.mqh>
-#include  <Trade/Trade.mqh>
-#include  <Trade/OrderInfo.mqh>
-#include  <Trade/PositionInfo.mqh>
+
 
 #include "Helper.mqh/"
+#include "TradeHelper.mqh/"
 #include "ChartButtons.mqh/"
 #include "TradeLevels.mqh/"
 double entryPrice = 0.0;
@@ -40,7 +39,7 @@ void SetInitalVisualChartSettings(){
 }
 int OnInit(){
    SetInitalVisualChartSettings();
-   chartButtons.CreateSetOrderButton();
+   chartButtons.CreateChartButtons();
    return(INIT_SUCCEEDED);
 }
 void OnDeinit(const int reason){
