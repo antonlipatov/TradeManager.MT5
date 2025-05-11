@@ -31,6 +31,7 @@ class ChartButtons{
       
       void setOrderButtonClick();
       void cancelOrdersButtonClick();
+      void closePositionsButtonClick();
    public:
       ChartButtons();
       ~ChartButtons();
@@ -38,11 +39,13 @@ class ChartButtons{
       void OnTradeEvent();
       void CreateChartButtons();
       bool CreateSetOrderButton();
-      bool CreateCancelOrderButton();
+      bool CreateCancelOrdersButton();
+      bool CreateClosePositionsButton();
       bool UpdateSetOrderButton();
       bool DeleteAll();
       bool DeleteSetOrderButton();
       bool DeleteCancelOrderButton();
+      bool DeleteClosePositionsButton();
 };
 
 ChartButtons::ChartButtons(){
@@ -58,6 +61,7 @@ void ChartButtons::OnEvent(const int id,const long &lparam,const double &dparam,
    if(id == CHARTEVENT_OBJECT_CLICK){
       if(sparam == _btnSetOrder.Name()) setOrderButtonClick();
       if(sparam == _btnCancelOrders.Name()) cancelOrdersButtonClick();
+      if(sparam == _btnClosePositions.Name()) closePositionsButtonClick();
    }
    if(id == CHARTEVENT_CLICK){
       //set entry line
@@ -74,9 +78,13 @@ void ChartButtons::OnEvent(const int id,const long &lparam,const double &dparam,
 }
 void ChartButtons::OnTradeEvent(void){
    if(TradeHelper::CountOpenOrders() > 0 && !Helper::IsObjectCreated(CancelOrdersButton))
-      CreateCancelOrderButton();
+      CreateCancelOrdersButton();
    if(TradeHelper::CountOpenOrders() <= 0 && Helper::IsObjectCreated(CancelOrdersButton))
-      DeleteCancelOrderButton(); 
+      DeleteCancelOrderButton();
+   if(TradeHelper::CountOpenPositions() > 0 && !Helper::IsObjectCreated(ClosePositionsButton))
+      CreateClosePositionsButton();
+   if(TradeHelper::CountOpenPositions() <= 0 && Helper::IsObjectCreated(ClosePositionsButton))
+      DeleteClosePositionsButton();  
 }
 bool ChartButtons::CreateSetOrderButton(void){
    if(!Helper::IsObjectCreated(SetOrderButton)){
@@ -88,7 +96,7 @@ bool ChartButtons::CreateSetOrderButton(void){
    }
    return false;
 }
-bool ChartButtons::CreateCancelOrderButton(void){
+bool ChartButtons::CreateCancelOrdersButton(void){
    if(!Helper::IsObjectCreated(CancelOrdersButton)){
       _btnCancelOrders.Create(0, CancelOrdersButton, 0, 505,5,645,30);
       _btnCancelOrders.ColorBackground(clrLightCoral);
@@ -98,9 +106,21 @@ bool ChartButtons::CreateCancelOrderButton(void){
    }
    return false;
 }
+bool ChartButtons::CreateClosePositionsButton(void){
+   if(!Helper::IsObjectCreated(ClosePositionsButton)){
+      _btnClosePositions.Create(0, ClosePositionsButton, 0, 650,5,790,30);
+      _btnClosePositions.Color(clrWhite);
+      _btnClosePositions.ColorBackground(clrDarkRed);
+      _btnClosePositions.Text("Close Positions");
+      ChartRedraw(0);
+      return true;
+   }
+   return false;
+}
 void ChartButtons::CreateChartButtons(void){
    CreateSetOrderButton();
-   if(TradeHelper::CountOpenOrders() > 0) CreateCancelOrderButton();
+   if(TradeHelper::CountOpenOrders() > 0) CreateCancelOrdersButton();
+   if(TradeHelper::CountOpenPositions() > 0) CreateClosePositionsButton();
 }
 bool ChartButtons::UpdateSetOrderButton(void){
    if(tradeLevels.PlacingEntryLevel){
@@ -127,9 +147,16 @@ bool ChartButtons::DeleteCancelOrderButton(void){
    ChartRedraw(0);
    return true; 
 }
+bool ChartButtons::DeleteClosePositionsButton(void){
+   if(!Helper::IsObjectCreated(ClosePositionsButton)) return false;
+   _btnClosePositions.Destroy();
+   ChartRedraw(0);
+   return true; 
+}
 bool ChartButtons::DeleteAll(void){
    DeleteSetOrderButton();
    DeleteCancelOrderButton();
+   DeleteClosePositionsButton();
    return true;
 }
 void ChartButtons::setOrderButtonClick(void){
@@ -141,4 +168,7 @@ void ChartButtons::setOrderButtonClick(void){
 }
 void ChartButtons::cancelOrdersButtonClick(void){
    TradeHelper::CancelOrders();   
+}
+void ChartButtons::closePositionsButtonClick(void){
+   TradeHelper::ClosePositions();
 }
