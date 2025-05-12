@@ -14,16 +14,16 @@ class StoplossLevel{
    private:
       CChartObjectTrend _stoplossLine;
       CButton _btnStoplossLineMover;
-      CChartObjectLabel _labelStoplossLevel;
-      bool updateLabelText(string value);
-      string generateStoplossLabelText();
+      CChartObjectLabel _labelStoplossLevel;    
    public:
       StoplossLevel();
       ~StoplossLevel();
       bool Create(long lparam, double dparam);
       double GetPrice();
       bool Update();
+      bool UpdateLabelText(string value);
       bool Delete();
+      string GenerateStoplossLabelText();
 };
 StoplossLevel::StoplossLevel(){}
 StoplossLevel::~StoplossLevel(){
@@ -42,7 +42,6 @@ bool StoplossLevel::Create(long lparam,double dparam){
       _stoplossLine.Create(0, StopLossLine, window, time, price, endOfDay, price);
       _stoplossLine.Color(clrRed);
       _stoplossLine.Width(1);
-      stopLossPrice = _stoplossLine.Price(0);
       //create level mover button
       if(Helper::IsObjectCreated(StopLossLineMoverButton)) _btnStoplossLineMover.Destroy();
       _btnStoplossLineMover.Create(0, StopLossLineMoverButton,0,(x - 35), (y -8), x, (y + 8));
@@ -51,12 +50,13 @@ bool StoplossLevel::Create(long lparam,double dparam){
       if(Helper::IsObjectCreated(StoplossLevelInfoText)) _labelStoplossLevel.Delete();
       _labelStoplossLevel.Create(0, StoplossLevelInfoText, 0, (x + 5), (y- 27));
       _labelStoplossLevel.Color(clrWhite);
-      updateLabelText(generateStoplossLabelText());
+      stopLevelPrice = GetPrice();
+      UpdateLabelText(GenerateStoplossLabelText());
       ChartRedraw(0);
       result = true;
       return result;
 }
-bool StoplossLevel::updateLabelText(string value){
+bool StoplossLevel::UpdateLabelText(string value){
       if(ObjectSetString(0, StoplossLevelInfoText, OBJPROP_TEXT, value)) return true;
       return false;
 }
@@ -64,15 +64,14 @@ double StoplossLevel::GetPrice(void){
    if(Helper::IsObjectCreated(StopLossLine)) return _stoplossLine.Price(0);
    return 0.0;
 }
-string StoplossLevel::generateStoplossLabelText(void){
-   //double entryPrice = tradeLevels.GetEntryPrice();
-   //double slPrice = tradeLevels.GetStopLossPrice();
-   //double risk = riskPersent;
-   //double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * risk / 100;
-   //string accountCurrency = AccountInfoString(ACCOUNT_CURRENCY);
-   //double lots = Helper::CalculateLotSize(entryPrice, slPrice, risk);
-   //return "SL: " + (string)slPrice + " "+ (string)lots + " lots " + (string)riskMoney + " " +  accountCurrency;
-   return "SL";
+string StoplossLevel::GenerateStoplossLabelText(){
+   double price = GetPrice();
+   double risk = persentOfRisk;
+   double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * risk / 100;
+   string accountCurrency = AccountInfoString(ACCOUNT_CURRENCY);
+   double lots = TradeHelper::CalculateLotSize(entryLevelPrice, stopLevelPrice, risk);
+   return "SL: " + (string)price + ", "+ (string)lots + " lots, " + (string)riskMoney + " " +  accountCurrency;
+
 }
 bool StoplossLevel::Update(void){
    return true;

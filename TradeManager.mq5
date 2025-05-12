@@ -5,15 +5,20 @@
 #include  <Controls/Edit.mqh>
 #include <Controls/Label.mqh>
 
-
 #include "Helper.mqh/"
 #include "TradeHelper.mqh/"
 #include "ChartButtons.mqh/"
 #include "TradeLevels.mqh/"
-double entryPrice = 0.0;
-double stopLossPrice = 0.0;
+
+input group "Risk per trade:"
+input double inputRisk1 = 0.1; //Risk value 1
+input double inputRisk2 = 0.25; //Risk value 2
+input double inputRisk3 = 0.5; //Risk value 3*
+input double inputRisk4 = 1.0; //Risk value 4
+input double inputRisk5 = 1.5; //Risk value 5
 ChartButtons chartButtons;
 TradeLevels tradeLevels;
+double entryLevelPrice = 0.0, stopLevelPrice = 0.0, persentOfRisk = 0.0;
 //Inital visual chart setup
 void SetInitalVisualChartSettings(){
    ChartSetInteger(0, CHART_COLOR_BACKGROUND, C'20,23,23');
@@ -40,6 +45,7 @@ void SetInitalVisualChartSettings(){
 int OnInit(){
    SetInitalVisualChartSettings();
    chartButtons.CreateChartButtons();
+   persentOfRisk = inputRisk3;
    return(INIT_SUCCEEDED);
 }
 void OnDeinit(const int reason){

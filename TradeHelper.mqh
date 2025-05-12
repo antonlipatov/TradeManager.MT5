@@ -13,6 +13,8 @@ class TradeHelper{
       static void CancelOrders();
       static void ClosePositions();
       static int CountOpenPositions();
+      static double CalculateLotSize(double entryPrice, double slPrice, double riskPercent);
+      static bool MarginCheck(double lot, double price);
 };
 TradeHelper::TradeHelper(){
 }
@@ -85,4 +87,66 @@ void TradeHelper::ClosePositions(void){
          i = PositionsTotal();
       }
    }
+}double TradeHelper::CalculateLotSize(double entryPrice,double slPrice,double riskPercent){
+         double result = -1;
+         //check incoming parameters
+         if(riskPercent <= 0 || riskPercent > 100){
+            Print(__FUNCTION__, " - > Incorrect % risk");
+            return result;
+         }
+         if(entryPrice == slPrice){
+            Print(__FUNCTION__, " - > Incorrect Entry or SL price");
+            return result;
+         }
+         //get risk in money
+         double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * riskPercent / 100;
+         //get tick size and value
+         double tickSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+         double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
+         double pointValue = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
+         //volume step
+         double volimeStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+         //get min, max, limit of volume
+         double volumeMin = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+         double volumeMax = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
+         double volumeLimit = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_LIMIT);
+         //Ticks
+         double priceDifference = MathAbs(entryPrice - slPrice);
+         int ticks =(int)(priceDifference / tickSize);
+         //risk
+         double riskPerLot = ticks * tickValue;
+         if(riskPerLot == 0){
+            Print(__FUNCTION__, " - > Zero risk per lot error.");
+            return result;
+         }
+         //lots
+         double lotSize = riskMoney / riskPerLot;
+         //Rounding lot size to volume step
+         lotSize = volimeStep * MathFloor(lotSize / volimeStep);
+         //fix min/max lot size volume
+         lotSize = MathMax(lotSize, volumeMin);
+         lotSize = MathMin(lotSize, volumeMax);
+         //check margin
+         if(!MarginCheck(lotSize, entryPrice)){
+            Print(__FUNCTION__, " - > Error: Not enough funds to open a position.");
+            return result;
+         }
+         if(volimeStep == 0.1)
+            lotSize = NormalizeDouble(lotSize, 1);
+         else
+         if(volimeStep == 0.01)
+            lotSize = NormalizeDouble(lotSize, 2);
+         else
+            lotSize = NormalizeDouble(lotSize, 2);
+         result = lotSize;
+         return result;
+}
+bool TradeHelper::MarginCheck(double lot,double price){
+   double marginRequired;
+   if(!OrderCalcMargin(ORDER_TYPE_BUY, _Symbol, lot, price, marginRequired)){
+      Print(__FUNCTION__, " -> Margin calculation error");
+      return false;
+   }
+   double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+   return(marginRequired < freeMargin);
 }
