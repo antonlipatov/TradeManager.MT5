@@ -14,18 +14,51 @@ class StoplossLevel{
    private:
       CChartObjectTrend _stoplossLine;
       CButton _btnStoplossLineMover;
-      CChartObjectLabel _labelStoplossLevel;    
+      CChartObjectLabel _labelStoplossLevel;
+    
    public:
       StoplossLevel();
       ~StoplossLevel();
+      bool MovingState;
+      int MoverMLBD_XD;
+      int MoverMLBD_YD;
+      int LabelMLBD_XD;
+      int LabelMLBD_YD;
       bool Create(long lparam, double dparam);
+      bool CreateLine(datetime time, double price); 
       double GetPrice();
+      bool LevelMove(int mouseXDistance, int mouseYDistance, int mouseLeftButtonDownX, int mouseLeftButtonDownY, int xDistance_Mover, int yDistance_Mover, int ySize_Mover);
+      void OnEvent(const int id,const long& lparam,const double& dparam,const string& sparam);
+      bool IsLevelExict();
+      int GetMoverXDistance();
+      bool SetMoverXDistance(int value);
+      int GetMoverYDistance();
+      bool SetMoverYDistance(int value);
+      int GetMoverXSize();
+      bool SetMoverXSize(int value);
+      int GetMoverYSize();
+      bool SetMoverYSize(int value);
+      int GetLabelXDistance();
+      bool SetLabelXDistance(int value);
+      int GetLabelYDistance();
+      bool SetLabelYDistance(int value);
+      int GetLabelXSize();
+      bool SetLabelXSize(int value);
+      int GetLabelYSize();
+      bool SetLabelYSize(int value);
       bool Update();
       bool UpdateLabelText(string value);
+      bool DeleteLine();
       bool Delete();
       string GenerateStoplossLabelText();
 };
-StoplossLevel::StoplossLevel(){}
+StoplossLevel::StoplossLevel(){
+   MovingState = false;\
+   MoverMLBD_XD = 0;
+   MoverMLBD_YD = 0;
+   LabelMLBD_XD = 0;
+   LabelMLBD_YD = 0;
+}
 StoplossLevel::~StoplossLevel(){
    Delete();
 }
@@ -56,6 +89,14 @@ bool StoplossLevel::Create(long lparam,double dparam){
       result = true;
       return result;
 }
+bool StoplossLevel::CreateLine(datetime time,double price){
+   int window = 0;
+   if(Helper::IsObjectCreated(StopLossLine)) return false;
+   _stoplossLine.Create(0, StopLossLine, window, time, price, Helper::GetEndOfDay(), price); 
+   _stoplossLine.Color(clrRed);
+   _stoplossLine.Width(1);
+   return true;
+}
 bool StoplossLevel::UpdateLabelText(string value){
       if(ObjectSetString(0, StoplossLevelInfoText, OBJPROP_TEXT, value)) return true;
       return false;
@@ -64,6 +105,81 @@ double StoplossLevel::GetPrice(void){
    if(Helper::IsObjectCreated(StopLossLine)) return _stoplossLine.Price(0);
    return 0.0;
 }
+bool StoplossLevel::LevelMove(int mouseXDistance,int mouseYDistance,int mouseLeftButtonDownX,int mouseLeftButtonDownY,int xDistance_Mover,int yDistance_Mover,int ySize_Mover){
+   ChartSetInteger(0, CHART_MOUSE_SCROLL, false);
+   //drag the obj along with the mouse button
+   SetMoverXDistance(MoverMLBD_XD + mouseXDistance - mouseLeftButtonDownX);
+   SetMoverYDistance(MoverMLBD_YD + mouseYDistance - mouseLeftButtonDownY);
+   //stoploss info label
+   SetLabelXDistance(LabelMLBD_XD + mouseXDistance - mouseLeftButtonDownX);
+   SetLabelYDistance(LabelMLBD_YD + mouseYDistance - mouseLeftButtonDownY);      
+   //price line
+   datetime lineTime = 0;
+   double linePrice = 0;
+   int window = 0;
+   ChartXYToTimePrice(0, (xDistance_Mover + 35), ((yDistance_Mover + ySize_Mover) - 6), window, lineTime, linePrice);
+   stopLevelPrice = linePrice;
+   DeleteLine();
+   CreateLine(lineTime, linePrice);
+   ChartRedraw(0);
+   return true;
+}
+void StoplossLevel::OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam){
+}
+bool StoplossLevel::IsLevelExict(void){
+   if(Helper::IsObjectCreated(StopLossLine) &&
+      Helper::IsObjectCreated(StopLossLineMoverButton) &&
+      Helper::IsObjectCreated(StoplossLevelInfoText)) return true;
+   return false;
+}
+int StoplossLevel::GetMoverXDistance(void){
+   return (int)ObjectGetInteger(0, StopLossLineMoverButton, OBJPROP_XDISTANCE);
+}
+bool StoplossLevel::SetMoverXDistance(int value){
+   return ObjectSetInteger(0, StopLossLineMoverButton, OBJPROP_XDISTANCE, value);
+}
+int StoplossLevel::GetMoverYDistance(void){
+   return (int)ObjectGetInteger(0, StopLossLineMoverButton, OBJPROP_YDISTANCE);
+}
+bool StoplossLevel::SetMoverYDistance(int value){
+   return ObjectSetInteger(0, StopLossLineMoverButton, OBJPROP_YDISTANCE, value);
+}
+int StoplossLevel::GetMoverXSize(void){
+   return (int)ObjectGetInteger(0, StopLossLineMoverButton, OBJPROP_XSIZE);
+}
+bool StoplossLevel::SetMoverXSize(int value){
+   return ObjectSetInteger(0, StopLossLineMoverButton, OBJPROP_XSIZE, value);
+}
+int StoplossLevel::GetMoverYSize(void){
+   return (int)ObjectGetInteger(0, StopLossLineMoverButton, OBJPROP_YSIZE);
+}
+bool StoplossLevel::SetMoverYSize(int value){
+   return ObjectSetInteger(0, StopLossLineMoverButton, OBJPROP_YSIZE, value);
+}
+int StoplossLevel::GetLabelXDistance(void){
+   return (int)ObjectGetInteger(0, StoplossLevelInfoText, OBJPROP_XDISTANCE);
+}
+bool StoplossLevel::SetLabelXDistance(int value){
+   return ObjectSetInteger(0, StoplossLevelInfoText, OBJPROP_XDISTANCE, value);
+}
+int StoplossLevel::GetLabelYDistance(void){
+   return (int)ObjectGetInteger(0, StoplossLevelInfoText, OBJPROP_YDISTANCE);
+}
+bool StoplossLevel::SetLabelYDistance(int value){
+   return ObjectSetInteger(0, StoplossLevelInfoText, OBJPROP_YDISTANCE, value);
+}
+int StoplossLevel::GetLabelXSize(void){
+   return (int)ObjectGetInteger(0, StoplossLevelInfoText, OBJPROP_XSIZE);
+}
+bool StoplossLevel::SetLabelXSize(int value){
+   return ObjectSetInteger(0, StoplossLevelInfoText, OBJPROP_XSIZE, value);
+}
+int StoplossLevel::GetLabelYSize(void){
+   return (int)ObjectGetInteger(0, StoplossLevelInfoText, OBJPROP_YSIZE);
+}
+bool StoplossLevel::SetLabelYSize(int value){
+   return ObjectSetInteger(0, StoplossLevelInfoText, OBJPROP_YSIZE, value);
+}
 string StoplossLevel::GenerateStoplossLabelText(){
    double price = GetPrice();
    double risk = persentOfRisk;
@@ -71,10 +187,12 @@ string StoplossLevel::GenerateStoplossLabelText(){
    string accountCurrency = AccountInfoString(ACCOUNT_CURRENCY);
    double lots = TradeHelper::CalculateLotSize(entryLevelPrice, stopLevelPrice, risk);
    return "SL: " + (string)price + ", "+ (string)lots + " lots, " + (string)riskMoney + " " +  accountCurrency;
-
 }
 bool StoplossLevel::Update(void){
    return true;
+}
+bool StoplossLevel::DeleteLine(void){
+   return _stoplossLine.Delete();
 }
 bool StoplossLevel::Delete(void){
    if(!Helper::IsObjectCreated(StopLossLine) || 

@@ -10,6 +10,8 @@
 #include "ChartButtons.mqh/"
 #include "TradeLevels.mqh/"
 
+input group "Visual chart settings"
+input bool inputEnableCustomChartSettings = true; //Enable custom visual chart settings
 input group "Risk per trade:"
 input double inputRisk1 = 0.1; //Risk value 1
 input double inputRisk2 = 0.25; //Risk value 2
@@ -43,7 +45,7 @@ void SetInitalVisualChartSettings(){
    ChartSetInteger(0, CHART_COLOR_LAST, clrYellow);
 }
 int OnInit(){
-   SetInitalVisualChartSettings();
+   if(inputEnableCustomChartSettings) SetInitalVisualChartSettings();
    chartButtons.CreateChartButtons();
    persentOfRisk = inputRisk3;
    return(INIT_SUCCEEDED);
