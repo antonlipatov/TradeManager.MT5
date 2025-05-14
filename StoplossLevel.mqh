@@ -15,11 +15,12 @@ class StoplossLevel{
       CChartObjectTrend _stoplossLine;
       CButton _btnStoplossLineMover;
       CChartObjectLabel _labelStoplossLevel;
-    
+      bool deleteLine();
    public:
       StoplossLevel();
       ~StoplossLevel();
       bool MovingState;
+      bool IsDragable;
       int MoverMLBD_XD;
       int MoverMLBD_YD;
       int LabelMLBD_XD;
@@ -48,12 +49,13 @@ class StoplossLevel{
       bool SetLabelYSize(int value);
       bool Update();
       bool UpdateLabelText(string value);
-      bool DeleteLine();
+      
       bool Delete();
       string GenerateStoplossLabelText();
 };
 StoplossLevel::StoplossLevel(){
-   MovingState = false;\
+   MovingState = false;
+   IsDragable = false;
    MoverMLBD_XD = 0;
    MoverMLBD_YD = 0;
    LabelMLBD_XD = 0;
@@ -119,7 +121,7 @@ bool StoplossLevel::LevelMove(int mouseXDistance,int mouseYDistance,int mouseLef
    int window = 0;
    ChartXYToTimePrice(0, (xDistance_Mover + 35), ((yDistance_Mover + ySize_Mover) - 6), window, lineTime, linePrice);
    stopLevelPrice = linePrice;
-   DeleteLine();
+   deleteLine();
    CreateLine(lineTime, linePrice);
    ChartRedraw(0);
    return true;
@@ -191,14 +193,14 @@ string StoplossLevel::GenerateStoplossLabelText(){
 bool StoplossLevel::Update(void){
    return true;
 }
-bool StoplossLevel::DeleteLine(void){
+bool StoplossLevel::deleteLine(void){
    return _stoplossLine.Delete();
 }
 bool StoplossLevel::Delete(void){
    if(!Helper::IsObjectCreated(StopLossLine) || 
       !Helper::IsObjectCreated(StopLossLineMoverButton) ||
       !Helper::IsObjectCreated(StoplossLevelInfoText)) return false;
-   _stoplossLine.Delete();
+   deleteLine();
    _btnStoplossLineMover.Destroy();
    _labelStoplossLevel.Delete();
    ChartRedraw(0);

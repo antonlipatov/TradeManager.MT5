@@ -32,15 +32,31 @@ class EntryLevel{
       CButton _btnSelectRisk3;
       CButton _btnSelectRisk4;
       CButton _btnSelectRisk5;
-      CChartObjectLabel _labelEntryLevel;      
+      CChartObjectLabel _labelEntryLevel;
+      bool _selectingRisk;
+      bool _riskButtonClicked;      
       bool createLevelButtons();
+      bool createSendOrderButton();
+      bool createRiskButton();
+      bool createCancelSelectionButton();
+      bool createSelectRiskButtons();
       double getRiskValue();
       void setRiskValue(double value);
       string generateRiskText(double riskValue);
+      void sendOrderButtonClick();
+      void riskButtonClick();
+      void selectRiskButtonClick(double riskValue);
+      void cancelSelectionButtonClick();
+      bool deleteLine();
+      bool deleteSendOrderButton();
+      bool deleteRiskButton();
+      bool deleteCancelSelectionButton();
+      bool deleteSelectRiskButtons();
    public:
       EntryLevel();
       ~EntryLevel();
       bool MovingState;
+      bool IsDragable;
       int MoverMLBD_XD;
       int MoverMLBD_YD;
       int SendButtonMLBD_XD;
@@ -99,12 +115,12 @@ class EntryLevel{
       bool SetLabelYSize(int value);
       bool Update();
       bool UpdateLabelText(string value);
-      bool DeleteLine();
       bool Delete();
       bool AddLevelButtons();
 };
 EntryLevel::EntryLevel(){
    MovingState = false;
+   IsDragable = false;
    MoverMLBD_XD = 0;
    MoverMLBD_YD = 0;
    SendButtonMLBD_XD = 0;
@@ -115,6 +131,7 @@ EntryLevel::EntryLevel(){
    CancelSelectionButtonMLBD_YD = 0;
    LabelMLBD_XD = 0;
    LabelMLBD_YD = 0;
+   _selectingRisk = false;
 }
 EntryLevel::~EntryLevel(){
    Delete();
@@ -185,13 +202,31 @@ bool EntryLevel::LevelMove(int mouseXDistance, int mouseYDistance, int mouseLeft
    int window = 0;
    ChartXYToTimePrice(0, (xDistance_Mover + 35), ((yDistance_Mover + ySize_Mover) - 6), window, lineTime, linePrice);
    entryLevelPrice = linePrice;
-   DeleteLine();
+   deleteLine();
    CreateLine(lineTime, linePrice);
    ChartRedraw(0);
    return true;
 }
 void EntryLevel::OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam){
-
+   if(id == CHARTEVENT_OBJECT_CLICK){
+      if(sparam == _btnSendOrder.Name()) sendOrderButtonClick();
+      if(sparam == _btnRisk.Name()) riskButtonClick();
+      if(sparam == _btnCancel.Name()) cancelSelectionButtonClick();
+      if(sparam == _btnSelectRisk1.Name()) selectRiskButtonClick(inputRisk1);
+      if(sparam == _btnSelectRisk2.Name()) selectRiskButtonClick(inputRisk2);
+      if(sparam == _btnSelectRisk3.Name()) selectRiskButtonClick(inputRisk3);
+      if(sparam == _btnSelectRisk4.Name()) selectRiskButtonClick(inputRisk4);
+      if(sparam == _btnSelectRisk5.Name()) selectRiskButtonClick(inputRisk5);
+   }
+   if(id == CHARTEVENT_CLICK){
+      if(_selectingRisk){
+         if(_riskButtonClicked){
+            _riskButtonClicked = false;
+            return;
+         }
+         deleteSelectRiskButtons();
+      }
+   }
 }
 bool EntryLevel::IsLevelExict(void){
    if(Helper::IsObjectCreated(EntryLine) && 
@@ -325,14 +360,29 @@ int EntryLevel::GetLabelYSize(void){
 bool EntryLevel::SetLabelYSize(int value){
    return ObjectSetInteger(0, EntryLevelInfoText, OBJPROP_YSIZE, value);
 }
-bool EntryLevel::DeleteLine(void){
+bool EntryLevel::deleteLine(void){
    return _entryLine.Delete();
+}
+bool EntryLevel::deleteSendOrderButton(void){
+   _btnSendOrder.Destroy();
+   return true;
+}
+bool EntryLevel::deleteRiskButton(void){
+   _btnRisk.Destroy();
+   return true;
+}
+bool EntryLevel::deleteCancelSelectionButton(void){
+   _btnCancel.Destroy();
+   return true;
 }
 bool EntryLevel::Delete(void){
    if(!Helper::IsObjectCreated(EntryLine) || 
       !Helper::IsObjectCreated(EntryLineMoverButton) ||
       !Helper::IsObjectCreated(EntryLevelInfoText)) return false;
-   _entryLine.Delete();
+   deleteLine();
+   deleteSendOrderButton();
+   deleteRiskButton();
+   deleteCancelSelectionButton();
    _btnEntryLineMover.Destroy();
    _labelEntryLevel.Delete();
    ChartRedraw(0);
@@ -346,24 +396,82 @@ bool EntryLevel::AddLevelButtons(void){
    return true; 
 }
 bool EntryLevel::createLevelButtons(void){
-   //get entry line
-   double entryLinePrice = GetPrice();
+   createSendOrderButton();
+   createRiskButton();
+   createCancelSelectionButton();
+   ChartRedraw(0);
+   return true;
+}
+bool EntryLevel::createSendOrderButton(void){
+   if(Helper::IsObjectCreated(SendOrderButton)) return false;
    datetime entryLineTime = _entryLine.Time(0);
    int x,y;
-   ChartTimePriceToXY(0, 0, entryLineTime, entryLinePrice, x, y);
-   if(!Helper::IsObjectCreated(SendOrderButton)){
-      _btnSendOrder.Create(0, SendOrderButton, 0, (x - 170), (y - 10), (x - 120) , (y + 10));//50
-      _btnSendOrder.Text("Send");
-   }
-   if(!Helper::IsObjectCreated(RiskButton)){
-      _btnRisk.Create(0, RiskButton, 0, (x - 115), (y - 10), (x - 65) , (y + 10));//40
-      _btnRisk.Text(generateRiskText(getRiskValue()));
-   }
-   if(!Helper::IsObjectCreated(CancelSelectionButton)){
-      _btnCancel.Create(0, CancelSelectionButton, 0, (x - 60), (y - 10), (x - 40) , (y + 10));//20
-      _btnCancel.Text("X");
-   }
+   ChartTimePriceToXY(0, 0, entryLineTime, GetPrice(), x, y);
+   _btnSendOrder.Create(0, SendOrderButton, 0, (x - 170), (y - 10), (x - 120) , (y + 10));//50
+   _btnSendOrder.Text("Send");
    ChartRedraw(0);
+   return true;
+}
+bool EntryLevel::createRiskButton(void){
+   if(Helper::IsObjectCreated(RiskButton)) return false;
+   datetime entryLineTime = _entryLine.Time(0);
+   int x,y;
+   ChartTimePriceToXY(0, 0, entryLineTime, GetPrice(), x, y);
+   _btnRisk.Create(0, RiskButton, 0, (x - 115), (y - 10), (x - 65) , (y + 10));//40
+   _btnRisk.Text(generateRiskText(getRiskValue()));
+   _selectingRisk = false;
+   ChartRedraw(0);
+   return true;
+}
+bool EntryLevel::createCancelSelectionButton(void){
+   if(Helper::IsObjectCreated(CancelSelectionButton)) return false;
+   datetime entryLineTime = _entryLine.Time(0);
+   int x,y;
+   ChartTimePriceToXY(0, 0, entryLineTime, GetPrice(), x, y);
+   _btnCancel.Create(0, CancelSelectionButton, 0, (x - 60), (y - 10), (x - 40) , (y + 10));//20
+   _btnCancel.Text("X");
+   ChartRedraw(0);
+   return true;
+}
+bool EntryLevel::createSelectRiskButtons(void){
+   if(_selectingRisk){
+      if(Helper::IsObjectCreated(RiskButton) &&
+      !Helper::IsObjectCreated(SelectRisk1Button) &&
+      !Helper::IsObjectCreated(SelectRisk2Button) &&
+      !Helper::IsObjectCreated(SelectRisk3Button) &&
+      !Helper::IsObjectCreated(SelectRisk4Button) &&
+      !Helper::IsObjectCreated(SelectRisk5Button)){
+         deleteRiskButton();
+         ChartRedraw(0);
+         //get entry line
+         double entryLinePrice = GetPrice();
+         datetime entryLineTime = _entryLine.Time(0);
+         int x,y;
+         ChartTimePriceToXY(0, 0, entryLineTime, entryLinePrice, x, y);
+         _btnSelectRisk1.Create(0, SelectRisk1Button, 0, (x - 105), (y - 60), (x - 65) , (y - 40));
+         _btnSelectRisk1.Color(clrBlack);
+         _btnSelectRisk1.ColorBackground(clrWheat);
+         _btnSelectRisk1.Text(string(inputRisk1));
+         _btnSelectRisk2.Create(0, SelectRisk2Button, 0, (x - 105), (y - 35), (x - 65) , (y - 15));
+         _btnSelectRisk2.Color(clrBlack);
+         _btnSelectRisk2.ColorBackground(clrWheat);
+         _btnSelectRisk2.Text(string(inputRisk2));
+         _btnSelectRisk3.Create(0, SelectRisk3Button, 0, (x - 105), (y - 10), (x - 65) , (y + 10));
+         _btnSelectRisk3.Color(clrBlack);
+         _btnSelectRisk3.ColorBackground(clrWheat);
+         _btnSelectRisk3.Text(string(inputRisk3));
+         _btnSelectRisk4.Create(0, SelectRisk4Button, 0, (x - 105), (y + 15), (x - 65) , (y + 35));
+         _btnSelectRisk4.Color(clrBlack);
+         _btnSelectRisk4.ColorBackground(clrWheat);
+         _btnSelectRisk4.Text(string(inputRisk4));
+         _btnSelectRisk5.Create(0, SelectRisk5Button, 0, (x - 105), (y + 40), (x - 65) , (y + 60));
+         _btnSelectRisk5.Color(clrBlack);
+         _btnSelectRisk5.ColorBackground(clrWheat);
+         _btnSelectRisk5.Text(string(inputRisk5));
+         UpdateLabelText("Select risk %");
+         ChartRedraw(0);
+      }
+   }
    return true;
 }
 double EntryLevel::getRiskValue(void){
@@ -374,4 +482,49 @@ void EntryLevel::setRiskValue(double value){
 }
 string EntryLevel::generateRiskText(double riskValue){
    return (string)riskValue + " %";
+}
+void EntryLevel::sendOrderButtonClick(void){
+   bool result = TradeHelper::SendPendingOrder(entryLevelPrice, stopLevelPrice, persentOfRisk);
+   if(result) tradeLevels.DeleteLevels();
+}
+void EntryLevel::riskButtonClick(void){
+   _selectingRisk = true;
+   IsDragable = false;
+   createSelectRiskButtons();
+   _riskButtonClicked = true;
+}
+void EntryLevel::selectRiskButtonClick(double riskValue){
+   persentOfRisk = riskValue;
+   deleteSelectRiskButtons();
+   createRiskButton();
+   ChartRedraw(0);
+}
+void EntryLevel::cancelSelectionButtonClick(void){
+   if(_selectingRisk) deleteSelectRiskButtons();
+   tradeLevels.DeleteLevels();
+}
+bool EntryLevel::deleteSelectRiskButtons(void){
+   if(_selectingRisk){
+      if(Helper::IsObjectCreated(SelectRisk1Button) &&
+      Helper::IsObjectCreated(SelectRisk2Button) &&
+      Helper::IsObjectCreated(SelectRisk3Button) &&
+      Helper::IsObjectCreated(SelectRisk4Button) &&
+      Helper::IsObjectCreated(SelectRisk5Button)){
+         _btnSelectRisk1.Destroy();
+         _btnSelectRisk2.Destroy();
+         _btnSelectRisk3.Destroy();
+         _btnSelectRisk4.Destroy();
+         _btnSelectRisk5.Destroy();
+         _selectingRisk = false;
+         ChartRedraw(0);
+         if(!Helper::IsObjectCreated(RiskButton)){
+            createRiskButton();
+            ChartRedraw(0);
+         }
+         IsDragable = true;
+         tradeLevels.UpdateLevelsLabelText(entryLevelPrice, stopLevelPrice);
+         return true;
+      }
+   }
+   return false;
 }

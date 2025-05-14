@@ -7,10 +7,9 @@ class TradeLevels{
    private:
       EntryLevel _entryLevel;
       StoplossLevel _stoplossLevel;
-      //
       int _prevMouseState;
-      int _mouseLeftButtonDownX1;
-      int _mouseLeftButtonDownY1;
+      int _mouseLeftButtonDownX;
+      int _mouseLeftButtonDownY;
       void addEntryLevelButtons();
    public:
       TradeLevels();
@@ -26,8 +25,8 @@ class TradeLevels{
 };
 TradeLevels::TradeLevels(){
    _prevMouseState = 0;
-   _mouseLeftButtonDownX1 = 0;
-   _mouseLeftButtonDownY1 = 0; 
+   _mouseLeftButtonDownX = 0;
+   _mouseLeftButtonDownY = 0; 
    PlacingEntryLevel = false;
    PlacingStoplossLevel = false;
 }
@@ -49,6 +48,7 @@ void TradeLevels::OnEvent(const int id,const long &lparam,const double &dparam,c
       if(PlacingEntryLevel) {
          CreateEntryLevel(lparam, dparam);
          PlacingEntryLevel = false;
+         _entryLevel.IsDragable = false;
          PlacingStoplossLevel = true;
          return;
       }
@@ -58,6 +58,8 @@ void TradeLevels::OnEvent(const int id,const long &lparam,const double &dparam,c
          addEntryLevelButtons();
          UpdateLevelsLabelText(entryLevelPrice, stopLevelPrice);
          chartButtons.UpdateSetOrderButton();
+         _entryLevel.IsDragable = true;
+         _stoplossLevel.IsDragable = true;
          return;
       }
    }
@@ -67,6 +69,7 @@ void TradeLevels::OnEvent(const int id,const long &lparam,const double &dparam,c
       int mouseState = (int)sparam;
       //Add mouse move to entry and stoploss levels
       if(_entryLevel.IsLevelExict() && _stoplossLevel.IsLevelExict()){
+         if(!_entryLevel.IsDragable || !_stoplossLevel.IsDragable) return;
          //entry level
          //line mover
          int xDistance_EntryMover = _entryLevel.GetMoverXDistance();
@@ -105,8 +108,8 @@ void TradeLevels::OnEvent(const int id,const long &lparam,const double &dparam,c
          int xSize_StoplossLabel = _stoplossLevel.GetLabelXSize();
          int ySize_StoplossLabel = _stoplossLevel.GetLabelYSize();
          if(_prevMouseState == 0 && mouseState == 1){
-            _mouseLeftButtonDownX1 = mouseXDistance;
-            _mouseLeftButtonDownY1 = mouseYDistance;
+            _mouseLeftButtonDownX = mouseXDistance;
+            _mouseLeftButtonDownY = mouseYDistance;
             //entry mover
             _entryLevel.MoverMLBD_XD = xDistance_EntryMover;
             _entryLevel.MoverMLBD_YD = yDistance_EntryMover;
@@ -144,12 +147,12 @@ void TradeLevels::OnEvent(const int id,const long &lparam,const double &dparam,c
             }
          }
          if(_entryLevel.MovingState){
-               _entryLevel.LevelMove(mouseXDistance, mouseYDistance, _mouseLeftButtonDownX1, _mouseLeftButtonDownY1, xDistance_EntryMover, yDistance_EntryMover, ySize_EntryMover);
+               _entryLevel.LevelMove(mouseXDistance, mouseYDistance, _mouseLeftButtonDownX, _mouseLeftButtonDownY, xDistance_EntryMover, yDistance_EntryMover, ySize_EntryMover);
                UpdateLevelsLabelText(_entryLevel.GetPrice(), _stoplossLevel.GetPrice());
                ChartRedraw(0);
          }
          if(_stoplossLevel.MovingState){
-            _stoplossLevel.LevelMove(mouseXDistance, mouseYDistance, _mouseLeftButtonDownX1, _mouseLeftButtonDownY1,xDistance_StoplossMover, yDistance_StoplossMover, ySize_StoplossMover);
+            _stoplossLevel.LevelMove(mouseXDistance, mouseYDistance, _mouseLeftButtonDownX, _mouseLeftButtonDownY,xDistance_StoplossMover, yDistance_StoplossMover, ySize_StoplossMover);
             UpdateLevelsLabelText(_entryLevel.GetPrice(), _stoplossLevel.GetPrice());
             ChartRedraw(0);
          }

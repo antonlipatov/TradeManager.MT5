@@ -15,6 +15,8 @@ class TradeHelper{
       static int CountOpenPositions();
       static double CalculateLotSize(double entryPrice, double slPrice, double riskPercent);
       static bool MarginCheck(double lot, double price);
+      static ENUM_ORDER_TYPE GetOrderType(double orderPrice, double slPrice);
+      static bool SendPendingOrder(double orderPrice, double slPrice, double riskPercent);
 };
 TradeHelper::TradeHelper(){
 }
@@ -149,4 +151,37 @@ bool TradeHelper::MarginCheck(double lot,double price){
    }
    double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
    return(marginRequired < freeMargin);
+}
+ENUM_ORDER_TYPE TradeHelper::GetOrderType(double orderPrice,double slPrice){
+   double askPrice = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   double bidPrice = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   if(orderPrice > askPrice && orderPrice > slPrice) return ORDER_TYPE_BUY_STOP;
+   if(orderPrice > askPrice && orderPrice < slPrice) return ORDER_TYPE_SELL_LIMIT;
+   if(orderPrice < bidPrice && orderPrice > slPrice) return ORDER_TYPE_BUY_LIMIT;
+   if(orderPrice < bidPrice && orderPrice < slPrice) return ORDER_TYPE_SELL_STOP;
+   return NULL;
+}
+bool TradeHelper::SendPendingOrder(double orderPrice, double slPrice, double riskPercent){
+   bool result = false;
+   if(orderPrice == 0 || slPrice == 0){
+      Print(__FUNCTION__, " -> Error: incorrect entry or stoploss prices");
+      return result;   
+   }
+   if(riskPercent == 0){
+      Print(__FUNCTION__, " -> Error: incorrect risk % value");
+      return result;    
+   }
+   double lotSize = CalculateLotSize(orderPrice, slPrice, riskPercent);
+   if(lotSize == -1){
+      Print(__FUNCTION__," -> Error: Unable to calculate lot size");
+      return result;
+   }
+   ENUM_ORDER_TYPE orderType = GetOrderType(orderPrice, slPrice);
+   CTrade trade;
+   if(orderType == ORDER_TYPE_BUY_LIMIT) result = trade.BuyLimit(lotSize,orderPrice, _Symbol, slPrice);
+   else if(orderType == ORDER_TYPE_BUY_STOP) result = trade.BuyStop(lotSize, orderPrice, _Symbol, slPrice);
+   else if(orderType == ORDER_TYPE_SELL_STOP) result = trade.SellStop(lotSize, orderPrice, _Symbol, slPrice);
+   else if(orderType == ORDER_TYPE_SELL_LIMIT) result = trade.SellLimit(lotSize, orderPrice, _Symbol, slPrice);
+   Print("order sent");
+   return result;
 }
