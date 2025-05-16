@@ -18,6 +18,8 @@ input double inputRisk2 = 0.25; //Risk value 2
 input double inputRisk3 = 0.5; //Risk value 3*
 input double inputRisk4 = 1.0; //Risk value 4
 input double inputRisk5 = 1.5; //Risk value 5
+
+
 ChartButtons chartButtons;
 TradeLevels tradeLevels;
 double entryLevelPrice = 0.0, stopLevelPrice = 0.0, persentOfRisk = 0.0;
@@ -43,6 +45,7 @@ void SetInitalVisualChartSettings(){
    ChartSetInteger(0, CHART_COLOR_ASK, clrLightCoral);
    ChartSetInteger(0, CHART_COLOR_BID, clrLightBlue);
    ChartSetInteger(0, CHART_COLOR_LAST, clrYellow);
+   
 }
 int OnInit(){
    if(inputEnableCustomChartSettings) SetInitalVisualChartSettings();

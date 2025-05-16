@@ -3,10 +3,13 @@
 //+------------------------------------------------------------------+
 #include "EntryLevel.mqh/"
 #include "StoplossLevel.mqh/"
+#include  "TradeLevel.mqh/"
+#define  ModifyPositionsLevel "ModifyPositionsLevel"
 class TradeLevels{
    private:
       EntryLevel _entryLevel;
       StoplossLevel _stoplossLevel;
+      TradeLevel _modifyPositionsLevel;
       int _prevMouseState;
       int _mouseLeftButtonDownX;
       int _mouseLeftButtonDownY;
@@ -17,6 +20,7 @@ class TradeLevels{
       void OnEvent(const int id,const long& lparam,const double& dparam,const string& sparam);
       bool PlacingEntryLevel;
       bool PlacingStoplossLevel;
+      bool PlacingModifyPositionsLevel;
       bool CreateEntryLevel(long lparam, double dparam);
       bool CreateStoplossLevel(long lparam, double dparam);
       bool UpdateLevelsLabelText(double entryPrice, double stoplossPrice);
@@ -29,6 +33,7 @@ TradeLevels::TradeLevels(){
    _mouseLeftButtonDownY = 0; 
    PlacingEntryLevel = false;
    PlacingStoplossLevel = false;
+   PlacingModifyPositionsLevel = false;
 }
 TradeLevels::~TradeLevels(){
    DeleteLevels();
@@ -61,6 +66,11 @@ void TradeLevels::OnEvent(const int id,const long &lparam,const double &dparam,c
          _entryLevel.IsDragable = true;
          _stoplossLevel.IsDragable = true;
          return;
+      }
+      if(PlacingModifyPositionsLevel){
+         _modifyPositionsLevel =  new TradeLevel(3,ModifyPositionsLevel, lparam, dparam);
+         
+         PlacingModifyPositionsLevel = false;
       }
    }
    if(id == CHARTEVENT_MOUSE_MOVE){
@@ -164,9 +174,10 @@ void TradeLevels::OnEvent(const int id,const long &lparam,const double &dparam,c
          _prevMouseState = mouseState;
       }
    }
+   _modifyPositionsLevel.OnEvent(id, lparam, dparam, sparam);
 }
 bool TradeLevels::DeleteLevels(void){
-   if(_entryLevel.Delete() && _stoplossLevel.Delete()) return true;
+   if(_entryLevel.Delete() && _stoplossLevel.Delete() && _modifyPositionsLevel.Delete()) return true;
    return false;
 }
 void TradeLevels::addEntryLevelButtons(void){
