@@ -1,0 +1,226 @@
+//+------------------------------------------------------------------+
+//|                                                  Application.mqh |
+//+------------------------------------------------------------------+
+#include "ChartButtons.mqh/"
+#include  "TradeLevel.mqh/"
+#define  PendingOrderLevel "PendingOrderLevel"
+#define  StopLossLevel "StopLossLevel"
+#define  ModifyPositionsLevel "ModifyPositionsLevel"
+class Application{
+   private:
+      double _riskValue1;
+      double _riskValue2;
+      double _riskValue3;
+      double _riskValue4;
+      double _riskValue5;
+      double _pendingOrderPrice;
+      double _slPrice;
+      double _modifyPositionsPrice;
+      double _riskPersent;
+      ChartButtons _chartButtons;
+      TradeLevel _pendingOrderLevel;
+      color _pendingLevelColor;
+      int _pendingLevelLineWidth;
+      color _pendingLabelColor;
+      TradeLevel _stopLossLevel;
+      color _stoplossLevelColor;
+      int _stoplossLevelLineWidth;
+      color _stoplossLabelColor;
+      TradeLevel _modifyPositionsLevel;
+      color _modifyPositionsLevelColor;
+      int _modifyPositionsLevelLineWidth;
+      color _modifyPositionsLabelColor;
+      bool setInitalVisualChartSettings();
+      bool updateLevelsText();
+      string generateStoplossLevelText();
+   public:
+      bool PlacingPendingOrderLevel;
+      bool PlacingStoplossLevel;
+      bool PlacingModifyPositionsLevel;
+      Application();
+      ~Application();
+      void Init(double riskValue1, double riskValue2, double riskValue3, double riskValue4, double riskValue5, bool loadVisualChartSettings, color pendingLevelColor, int pendingLevelLineWidth, color pendingLabelColor, color stoplossLevelColor, int stoplossLevelLineWidth, color stoplossLabelColor, color modifyPositionsLevelColor, int modifyPositionsLevelLineWidth, color modifyPositionsLabelColor);
+      void OnEvent(const int id,const long& lparam,const double& dparam,const string& sparam);
+      void Deinit();
+      void OnTradeEvent();
+      double GetRiskPersent();
+      double GetPendingOrderPrice();
+      double GetStoplossPrice();
+      double GetModifyPositionsPrice();
+      bool GetRiskValues(double& riskValues[]);
+      void SetRiskPersent(double value);
+};
+Application::Application(){
+}
+Application::~Application(){
+}
+bool Application::updateLevelsText(void){
+   //get bid and ask price
+   double askPrice = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   double bidPrice = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   string pendingLabelValue, stoplossLabelValue;
+   if(_pendingOrderPrice < bidPrice && _slPrice < _pendingOrderPrice){
+      pendingLabelValue = "Buy limit: " + (string)_pendingOrderPrice;
+      stoplossLabelValue = generateStoplossLevelText();
+      _pendingOrderLevel.UpdateText(pendingLabelValue);
+      _stopLossLevel.UpdateText(stoplossLabelValue);
+   }
+   if(_pendingOrderPrice < bidPrice && _slPrice > _pendingOrderPrice){
+      pendingLabelValue = "Sell stop: " + (string)_pendingOrderPrice;
+      stoplossLabelValue = generateStoplossLevelText();
+      _pendingOrderLevel.UpdateText(pendingLabelValue);
+      _stopLossLevel.UpdateText(stoplossLabelValue);
+   }
+   if(_pendingOrderPrice > askPrice && _slPrice > _pendingOrderPrice){
+      pendingLabelValue = "Sell limit: " + (string)_pendingOrderPrice;
+      stoplossLabelValue = generateStoplossLevelText();
+      _pendingOrderLevel.UpdateText(pendingLabelValue);
+      _stopLossLevel.UpdateText(stoplossLabelValue);
+   }
+   if(_pendingOrderPrice > askPrice && _slPrice < _pendingOrderPrice){
+      pendingLabelValue = "Buy stop: " + (string)_pendingOrderPrice;
+      stoplossLabelValue = generateStoplossLevelText();
+      _pendingOrderLevel.UpdateText(pendingLabelValue);
+      _stopLossLevel.UpdateText(stoplossLabelValue);
+   }
+   return true;
+}
+string Application::generateStoplossLevelText(void){
+   double entryPrice = _pendingOrderPrice;
+   double slPrice = _slPrice;
+   double risk = _riskPersent;
+   double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * risk / 100;
+   string accountCurrency = AccountInfoString(ACCOUNT_CURRENCY);
+   double lots = TradeHelper::CalculateLotSize(entryPrice, slPrice, risk);
+   return "SL: " + (string)slPrice + " "+ (string)lots + " lots " + (string)riskMoney + " " +  accountCurrency;
+}
+void Application::Init(double riskValue1,double riskValue2,double riskValue3,double riskValue4,double riskValue5,bool loadVisualChartSettings,color pendingLevelColor,int pendingLevelLineWidth,color pendingLabelColor,color stoplossLevelColor,int stoplossLevelLineWidth,color stoplossLabelColor,color modifyPositionsLevelColor,int modifyPositionsLevelLineWidth,color modifyPositionsLabelColor){
+   _riskValue1 = riskValue1;
+   _riskValue2 = riskValue2;
+   _riskValue3 = riskValue3;
+   _riskValue4 = riskValue4;
+   _riskValue5 = riskValue5;
+   _riskPersent = riskValue3;
+   _pendingLevelColor = pendingLevelColor;
+   _pendingLevelLineWidth = pendingLevelLineWidth;
+   _pendingLabelColor = pendingLabelColor;
+   _stoplossLevelColor = stoplossLevelColor;
+   _stoplossLevelLineWidth = stoplossLevelLineWidth;
+   _stoplossLabelColor = stoplossLabelColor;
+   _modifyPositionsLevelColor = modifyPositionsLevelColor;
+   _modifyPositionsLevelLineWidth = modifyPositionsLevelLineWidth;
+   _modifyPositionsLabelColor = modifyPositionsLabelColor;
+   _pendingOrderPrice = 0;
+   _modifyPositionsPrice = 0;
+   _slPrice = 0;
+   if(loadVisualChartSettings) setInitalVisualChartSettings();
+   PlacingPendingOrderLevel = false;
+   PlacingStoplossLevel = false;
+   PlacingModifyPositionsLevel = false;
+   _chartButtons.CreateChartButtons();
+}
+void Application::OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam){
+    _chartButtons.OnEvent(id, lparam, dparam, sparam);
+   _pendingOrderLevel.OnEvent(id, lparam, dparam, sparam);
+   _stopLossLevel.OnEvent(id, lparam, dparam, sparam);
+   _modifyPositionsLevel.OnEvent(id, lparam, dparam, sparam);
+   if(id == CHARTEVENT_CLICK){
+      if(PlacingPendingOrderLevel) {
+         if(_modifyPositionsLevel.IsLevelExist()){
+            PlacingPendingOrderLevel = false;
+            return;
+         }
+         _pendingOrderLevel.Create(PendingOrderLevel, lparam, dparam, 1, _pendingLevelColor, _pendingLevelLineWidth, _pendingLabelColor);
+         PlacingPendingOrderLevel = false;
+         _pendingOrderPrice = _pendingOrderLevel.GetPrice();
+         _pendingOrderLevel.IsDragable = false;
+         PlacingStoplossLevel = true;
+         return;
+      }
+      if(PlacingStoplossLevel){
+         _stopLossLevel.Create(StopLossLevel, lparam, dparam, 2, _stoplossLevelColor, _stoplossLevelLineWidth, _stoplossLabelColor);
+         PlacingStoplossLevel = false;
+         _slPrice = _stopLossLevel.GetPrice();
+         _pendingOrderLevel.IsDragable = true;
+         _stopLossLevel.IsDragable = true;
+         updateLevelsText();
+         ChartRedraw(0);
+         return;
+      }
+      if(PlacingModifyPositionsLevel){
+         if(_pendingOrderLevel.IsLevelExist() || _stopLossLevel.IsLevelExist()){
+            PlacingModifyPositionsLevel = false;
+            return;
+         }
+         _modifyPositionsLevel.Create(ModifyPositionsLevel, lparam, dparam, 3, _modifyPositionsLevelColor, _modifyPositionsLevelLineWidth, _modifyPositionsLabelColor);
+         PlacingModifyPositionsLevel = false;
+         _modifyPositionsPrice = _modifyPositionsLevel.GetPrice();
+         _modifyPositionsLevel.IsDragable = true;
+      }
+   }
+   if(id > CHARTEVENT_CUSTOM){
+      CustomEvents event = (CustomEvents)(id - CHARTEVENT_CUSTOM);
+      if(event== DeleteLevel_EVENT)
+         if(sparam == PendingOrderLevel) _stopLossLevel.Delete();
+      if(event == PriceUpdate_EVENT){
+         if(sparam == PendingOrderLevel) _pendingOrderPrice = dparam;
+         if(sparam == StopLossLevel) _slPrice = dparam;
+         if(sparam == ModifyPositionsLevel) _modifyPositionsPrice = dparam;
+      }
+      if(event == UpdateTextLevel_EVENT)
+         if(sparam == PendingOrderLevel || sparam == StopLossLevel) updateLevelsText();   
+   }
+}
+void Application::Deinit(void){
+}
+void Application::OnTradeEvent(void){
+   _chartButtons.OnTradeEvent();
+}
+double Application::GetRiskPersent(void){
+   return _riskPersent;
+}
+double Application::GetPendingOrderPrice(void){
+   return _pendingOrderPrice;
+}
+double Application::GetStoplossPrice(void){
+   return _slPrice;
+}
+double Application::GetModifyPositionsPrice(void){
+   return _modifyPositionsPrice;
+}
+bool Application::GetRiskValues(double &riskValues[]){
+   if(ArrayResize(riskValues, 5) == -1) return false;
+   riskValues[0] = _riskValue1;
+   riskValues[1] = _riskValue2;
+   riskValues[2] = _riskValue3;
+   riskValues[3] = _riskValue4;
+   riskValues[4] = _riskValue5;
+   return true;
+}
+void Application::SetRiskPersent(double value){
+   _riskPersent = value;
+}
+bool Application::setInitalVisualChartSettings(void){
+if(ChartSetInteger(0, CHART_COLOR_BACKGROUND, C'20,23,23') &&
+   ChartSetInteger(0, CHART_SHOW_GRID, false) &&
+   ChartSetInteger(0, CHART_SHOW_VOLUMES, false) &&
+   ChartSetInteger(0, CHART_SHOW_PERIOD_SEP, true) &&
+   ChartSetInteger(0, CHART_SHOW_ASK_LINE, true) &&
+   ChartSetInteger(0, CHART_SHOW_BID_LINE, true) &&
+   ChartSetInteger(0, CHART_SHOW_LAST_LINE, true) &&
+   ChartSetInteger(0, CHART_SHOW_ONE_CLICK, true) &&
+   ChartSetInteger(0, CHART_SHOW_TRADE_LEVELS, true) &&
+   ChartSetInteger(0, CHART_SHIFT, true) &&
+   ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, true) &&
+   ChartSetInteger(0, CHART_EVENT_OBJECT_DELETE, true) &&
+   ChartSetDouble(0, CHART_SHIFT_SIZE, 5) &&
+   ChartSetInteger(0, CHART_COLOR_CHART_DOWN, clrLightGray) &&
+   ChartSetInteger(0, CHART_COLOR_CHART_UP, clrWhite) &&
+   ChartSetInteger(0, CHART_COLOR_CANDLE_BULL, clrGold) &&
+   ChartSetInteger(0, CHART_COLOR_CANDLE_BEAR, clrDodgerBlue) &&
+   ChartSetInteger(0, CHART_COLOR_CHART_LINE, clrWhite) &&
+   ChartSetInteger(0, CHART_COLOR_ASK, clrLightCoral) &&
+   ChartSetInteger(0, CHART_COLOR_BID, clrLightBlue) &&
+   ChartSetInteger(0, CHART_COLOR_LAST, clrYellow)) return true;
+   return false;
+}

@@ -1,6 +1,11 @@
 //+------------------------------------------------------------------+
 //|                                                       Helper.mqh |
 //+------------------------------------------------------------------+
+enum CustomEvents{
+   PriceUpdate_EVENT = 410,
+   DeleteLevel_EVENT = 220,
+   UpdateTextLevel_EVENT = 420 
+};
 class Helper{
    private:
    public:
