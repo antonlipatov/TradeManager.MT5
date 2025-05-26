@@ -4,6 +4,9 @@
 #include  <Trade/Trade.mqh>
 #include  <Trade/OrderInfo.mqh>
 #include  <Trade/PositionInfo.mqh>
+#include  <Trade/AccountInfo.mqh>
+ #include <Trade\SymbolInfo.mqh>
+#include  <Expert\Money\MoneyFixedRisk.mqh>
 class TradeHelper{
    private:
    public:
@@ -13,10 +16,15 @@ class TradeHelper{
       static void CancelOrders();
       static void ClosePositions();
       static int CountOpenPositions();
+      static void CountOpenedBuysAndSellsPositions(int& buyPositions, int& sellPositions);
       static double CalculateLotSize(double entryPrice, double slPrice, double riskPercent);
       static bool MarginCheck(double lot, double price);
       static ENUM_ORDER_TYPE GetOrderType(double orderPrice, double slPrice);
+      static double HighestLowestPositionPrice(ENUM_POSITION_TYPE direction, bool hl); 
+      static double PositionsPnL(double price, ENUM_POSITION_TYPE direction);
       static bool SendPendingOrder(double orderPrice, double slPrice, double riskPercent);
+      static bool ModifyPositions(double price, ENUM_POSITION_TYPE positionType, int flagTpSl);
+      static double NormalizePrice(const double price);
 };
 TradeHelper::TradeHelper(){
 }
@@ -52,6 +60,65 @@ int TradeHelper::CountOpenPositions(void){
          count++;
    }
    return count;
+}
+double TradeHelper::HighestLowestPositionPrice(ENUM_POSITION_TYPE direction, bool hl){
+   if(PositionsTotal() == 0) return 0;
+   double lastPrice = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--){
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0){
+         Print(__FUNCTION__, " -> Error getting position: ", GetLastError());
+         continue;
+      }
+      if(PositionGetString(POSITION_SYMBOL) == _Symbol){
+         if(PositionGetInteger(POSITION_TYPE) == direction ){
+            double currentPositionPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+            if(lastPrice == 0) lastPrice = currentPositionPrice;
+            if(hl) 
+               if(currentPositionPrice > lastPrice) lastPrice = currentPositionPrice;
+            if(!hl) 
+               if(currentPositionPrice < lastPrice) lastPrice = currentPositionPrice;
+         } 
+      }
+   }
+   return lastPrice;
+}
+double TradeHelper::PositionsPnL(double price,ENUM_POSITION_TYPE direction){
+   double totalPnL = 0.0;
+   if(PositionsTotal() == 0) return totalPnL;
+   const string symbol = Symbol();
+   for(int i = PositionsTotal()-1; i >= 0; i--){
+      if(PositionGetSymbol(i) != symbol) continue;
+      const ENUM_POSITION_TYPE type = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+      const double volume = PositionGetDouble(POSITION_VOLUME);
+      const double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+      if(type == direction){
+         double pnL = 0;
+         CAccountInfo info;
+         if(direction == POSITION_TYPE_BUY)
+            pnL = info.OrderProfitCheck(symbol, ORDER_TYPE_BUY, volume, openPrice, price);
+         if(direction == POSITION_TYPE_SELL)
+            pnL = info.OrderProfitCheck(symbol, ORDER_TYPE_SELL, volume, openPrice, price);         
+         totalPnL +=  pnL;
+      }
+   }
+   return totalPnL;
+}
+void TradeHelper::CountOpenedBuysAndSellsPositions(int &buyPositions,int &sellPositions){
+   buyPositions = 0; 
+   sellPositions = 0;
+   for(int i = PositionsTotal()-1; i >= 0; i--){
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) {
+         Print(__FUNCTION__, " -> Error getting position: ", GetLastError());
+         continue;
+      }
+      string positionSymbol = PositionGetString(POSITION_SYMBOL);
+      if(positionSymbol == _Symbol){
+         if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) buyPositions++;
+         if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL) sellPositions++;
+      }
+   }
 }
 void TradeHelper::CancelOrders(void){
    int ordersTotal = OrdersTotal();
@@ -184,4 +251,35 @@ bool TradeHelper::SendPendingOrder(double orderPrice, double slPrice, double ris
    else if(orderType == ORDER_TYPE_SELL_LIMIT) result = trade.SellLimit(lotSize, orderPrice, _Symbol, slPrice);
    Print("order sent");
    return result;
+}
+bool TradeHelper::ModifyPositions(double price,ENUM_POSITION_TYPE positionType,int flagTpSl){
+   bool result = false;
+   if(positionType == -1 || flagTpSl == 0) return result;
+   for(int i = PositionsTotal() - 1; i >= 0; i--){
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0){
+         Print(__FUNCTION__, " -> Error getting position #", i, ", error: ", GetLastError());
+         continue;
+      }
+      if(PositionGetString(POSITION_SYMBOL) == _Symbol){
+         if(PositionGetInteger(POSITION_TYPE) == positionType){
+            double positionSL = PositionGetDouble(POSITION_SL);
+            double positionTP = PositionGetDouble(POSITION_TP);
+            CTrade trade;
+            if(flagTpSl == 1)
+               result = trade.PositionModify(ticket, positionSL, price);
+            if(flagTpSl == 2)
+               result = trade.PositionModify(ticket, price, positionTP);
+         }
+      }
+   }
+   return result;
+}
+
+double TradeHelper::NormalizePrice(const double price){
+   double tickSize = SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE);
+   int digits = (int)SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
+   if(tickSize!=0)
+      return(NormalizeDouble(MathRound(price/tickSize)*tickSize,digits));
+   return(NormalizeDouble(price,digits));
 }

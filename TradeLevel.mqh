@@ -59,6 +59,8 @@ class TradeLevel: public CChartObject{
       bool _riskButtonClicked;
       double _risks[];
       double _price;
+      int _x;
+      int _y;
       //level
       CChartObjectTrend _line;
       CButton _btnMoverButton;
@@ -106,6 +108,8 @@ class TradeLevel: public CChartObject{
       bool UpdateText(string value);
       double GetPrice();
       bool SetPrice(double value);
+      int GetX();
+      int GetY();
       bool Delete();
 };
 TradeLevel::TradeLevel(){
@@ -282,6 +286,8 @@ bool TradeLevel::Create(string objectName, long lparam, double dparam, int type,
    int y = (int)dparam;
    int window = 0;
    ChartXYToTimePrice(0, x, y, window, time, price);
+   _x = x;
+   _y = y;
    createLine(time, price);
    createMoverButton(x, y);
    string textValue;
@@ -308,7 +314,6 @@ bool TradeLevel::createLine(datetime time,double price){
    if(Helper::IsObjectCreated(_lineName)) deleteLine();
    int window = 0;
    _line.Create(0, _lineName, window, time, price, Helper::GetEndOfDay(), price);
-   //todo:: add select color to inputs
    _line.Color(_levelColor);
    _line.Width(_lineWidth);
    SetPrice(_line.Price(0));
@@ -394,11 +399,16 @@ bool TradeLevel::createSelectRiskButtons(void){
    return true;
 }
 void TradeLevel::sendOrderButtonClick(void){
+   bool result = false;
    if(_type == 1){
-      bool result = TradeHelper::SendPendingOrder(app.GetPendingOrderPrice(), app.GetStoplossPrice(), app.GetRiskPersent());
+      result = TradeHelper::SendPendingOrder(app.GetPendingOrderPrice(), app.GetStoplossPrice(), app.GetRiskPersent());
       if(result) Delete();   
    }
-   
+   if(_type == 3){
+      Print("p: ", app.GetModifyPositionsPrice(), " d: ", app.GetModifyPositionsDirection(), " f: ", app.GetModifyPositionsFlagTpSl());
+      result = TradeHelper::ModifyPositions(app.GetModifyPositionsPrice() , app.GetModifyPositionsDirection(), app.GetModifyPositionsFlagTpSl());
+      if(result) Delete();
+   }
 }
 void TradeLevel::riskButtonClick(void){
    _selectingRisk = true;
@@ -412,11 +422,13 @@ void TradeLevel::cancelButtonClick(void){
 void TradeLevel::selectRiskButtonClick(double newRiskValue){
    app.SetRiskPersent(newRiskValue);
    deleteSelectRiskButtons();
-   //createRiskButton();
    ChartRedraw(0);
 }
 bool TradeLevel::updateLabelText(string value){
-   if(ObjectSetString(0, _labelName, OBJPROP_TEXT, value)) return true;
+   if(ObjectSetString(0, _labelName, OBJPROP_TEXT, value)){
+      ChartRedraw(0); 
+      return true;
+   }
    return false;
 }
 
@@ -503,17 +515,15 @@ bool TradeLevel::IsLevelExist(void){
         return false;
      }
 }
-bool TradeLevel::UpdateText(string value){
-   return updateLabelText(value);
-}
-double TradeLevel::GetPrice(void){
-   return _price;
-}
+bool TradeLevel::UpdateText(string value){ return updateLabelText(value);}
+double TradeLevel::GetPrice(void){ return _price; }
 bool TradeLevel::SetPrice(double value){
-   _price = value;
+   _price = TradeHelper::NormalizePrice(value);
    updatePriceEvent();
    return true;
 }
+int TradeLevel::GetX(void){ return _x; }
+int TradeLevel::GetY(void){ return _y; }
 bool TradeLevel::Delete(void){
    deleteLine();
    deleteMoverButton();

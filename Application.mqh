@@ -3,9 +3,11 @@
 //+------------------------------------------------------------------+
 #include "ChartButtons.mqh/"
 #include  "TradeLevel.mqh/"
+#include  "DialogWindow.mqh/"
 #define  PendingOrderLevel "PendingOrderLevel"
 #define  StopLossLevel "StopLossLevel"
 #define  ModifyPositionsLevel "ModifyPositionsLevel"
+#define  ModifyPositionsDirectionDialog "ModifyPositionsDirectionDialog"
 class Application{
    private:
       double _riskValue1;
@@ -19,6 +21,7 @@ class Application{
       double _riskPersent;
       ChartButtons _chartButtons;
       TradeLevel _pendingOrderLevel;
+      DialogWindow _dialogModifyPositionsDirection;
       color _pendingLevelColor;
       int _pendingLevelLineWidth;
       color _pendingLabelColor;
@@ -30,9 +33,13 @@ class Application{
       color _modifyPositionsLevelColor;
       int _modifyPositionsLevelLineWidth;
       color _modifyPositionsLabelColor;
+      ENUM_POSITION_TYPE _modifyPositionsDirection;
+      int _modifyPositionsFlagTpSl;
       bool setInitalVisualChartSettings();
       bool updateLevelsText();
       string generateStoplossLevelText();
+      string generateModifyPositionsLevelText(bool tpsl);
+      void updateModifyPositionsDirection();
    public:
       bool PlacingPendingOrderLevel;
       bool PlacingStoplossLevel;
@@ -47,8 +54,11 @@ class Application{
       double GetPendingOrderPrice();
       double GetStoplossPrice();
       double GetModifyPositionsPrice();
+      int GetModifyPositionsFlagTpSl();
       bool GetRiskValues(double& riskValues[]);
       void SetRiskPersent(double value);
+      ENUM_POSITION_TYPE GetModifyPositionsDirection();
+      void SetModifyPositionsDirection(ENUM_POSITION_TYPE value);
 };
 Application::Application(){
 }
@@ -58,30 +68,65 @@ bool Application::updateLevelsText(void){
    //get bid and ask price
    double askPrice = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
    double bidPrice = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-   string pendingLabelValue, stoplossLabelValue;
-   if(_pendingOrderPrice < bidPrice && _slPrice < _pendingOrderPrice){
-      pendingLabelValue = "Buy limit: " + (string)_pendingOrderPrice;
+   if(_pendingOrderLevel.IsLevelExist() && _stopLossLevel.IsLevelExist()){
+      string pendingLabelValue, stoplossLabelValue;
+      if(_pendingOrderPrice < bidPrice && _slPrice < _pendingOrderPrice)
+         pendingLabelValue = "Buy limit: " + (string)_pendingOrderPrice;
+      if(_pendingOrderPrice < bidPrice && _slPrice > _pendingOrderPrice)
+         pendingLabelValue = "Sell stop: " + (string)_pendingOrderPrice;
+      if(_pendingOrderPrice > askPrice && _slPrice > _pendingOrderPrice)
+         pendingLabelValue = "Sell limit: " + (string)_pendingOrderPrice;
+      if(_pendingOrderPrice > askPrice && _slPrice < _pendingOrderPrice)
+         pendingLabelValue = "Buy stop: " + (string)_pendingOrderPrice;
       stoplossLabelValue = generateStoplossLevelText();
       _pendingOrderLevel.UpdateText(pendingLabelValue);
       _stopLossLevel.UpdateText(stoplossLabelValue);
    }
-   if(_pendingOrderPrice < bidPrice && _slPrice > _pendingOrderPrice){
-      pendingLabelValue = "Sell stop: " + (string)_pendingOrderPrice;
-      stoplossLabelValue = generateStoplossLevelText();
-      _pendingOrderLevel.UpdateText(pendingLabelValue);
-      _stopLossLevel.UpdateText(stoplossLabelValue);
-   }
-   if(_pendingOrderPrice > askPrice && _slPrice > _pendingOrderPrice){
-      pendingLabelValue = "Sell limit: " + (string)_pendingOrderPrice;
-      stoplossLabelValue = generateStoplossLevelText();
-      _pendingOrderLevel.UpdateText(pendingLabelValue);
-      _stopLossLevel.UpdateText(stoplossLabelValue);
-   }
-   if(_pendingOrderPrice > askPrice && _slPrice < _pendingOrderPrice){
-      pendingLabelValue = "Buy stop: " + (string)_pendingOrderPrice;
-      stoplossLabelValue = generateStoplossLevelText();
-      _pendingOrderLevel.UpdateText(pendingLabelValue);
-      _stopLossLevel.UpdateText(stoplossLabelValue);
+   if(_modifyPositionsLevel.IsLevelExist()){
+      double highestPositionPrice = TradeHelper::HighestLowestPositionPrice(_modifyPositionsDirection, true);
+      double lowestPositionPrice = TradeHelper::HighestLowestPositionPrice(_modifyPositionsDirection, false);
+      if(_modifyPositionsDirection == POSITION_TYPE_BUY){
+         if(_modifyPositionsPrice > highestPositionPrice &&
+            _modifyPositionsPrice > askPrice){
+            _modifyPositionsFlagTpSl = 1;
+            _modifyPositionsLevel.UpdateText(generateModifyPositionsLevelText(true));
+         }
+         
+         if((_modifyPositionsPrice < lowestPositionPrice &&
+            _modifyPositionsPrice < bidPrice) ||
+            (_modifyPositionsPrice > highestPositionPrice &&
+             _modifyPositionsPrice < bidPrice)){
+            _modifyPositionsFlagTpSl = 2;
+            _modifyPositionsLevel.UpdateText(generateModifyPositionsLevelText(false));
+         }
+         if((_modifyPositionsPrice < highestPositionPrice && 
+            _modifyPositionsPrice > lowestPositionPrice) ||
+            (_modifyPositionsPrice >= bidPrice && _modifyPositionsPrice <= askPrice)){
+            _modifyPositionsFlagTpSl = 0;
+            _modifyPositionsLevel.UpdateText("Modify positions");
+         }
+      }
+      if(_modifyPositionsDirection == POSITION_TYPE_SELL){
+         if(_modifyPositionsPrice < lowestPositionPrice &&
+            _modifyPositionsPrice < bidPrice){
+            _modifyPositionsFlagTpSl = 1;
+            _modifyPositionsLevel.UpdateText(generateModifyPositionsLevelText(true));
+         }
+         if((_modifyPositionsPrice > highestPositionPrice &&
+            _modifyPositionsPrice > askPrice) ||
+            (_modifyPositionsPrice < lowestPositionPrice &&
+             _modifyPositionsPrice > askPrice)) {
+            _modifyPositionsFlagTpSl = 2;
+            _modifyPositionsLevel.UpdateText(generateModifyPositionsLevelText(false));
+         }
+         if((_modifyPositionsPrice < highestPositionPrice && 
+            _modifyPositionsPrice > lowestPositionPrice) ||
+            (_modifyPositionsPrice >= bidPrice && 
+             _modifyPositionsPrice <= askPrice)){
+            _modifyPositionsFlagTpSl = 0;
+            _modifyPositionsLevel.UpdateText("Modify positions");
+         }
+      }
    }
    return true;
 }
@@ -93,6 +138,12 @@ string Application::generateStoplossLevelText(void){
    string accountCurrency = AccountInfoString(ACCOUNT_CURRENCY);
    double lots = TradeHelper::CalculateLotSize(entryPrice, slPrice, risk);
    return "SL: " + (string)slPrice + " "+ (string)lots + " lots " + (string)riskMoney + " " +  accountCurrency;
+}
+string  Application::generateModifyPositionsLevelText(bool tpsl){
+   string direction = _modifyPositionsDirection == POSITION_TYPE_BUY ? "buy": "sell";
+   if(tpsl) return "Modify " + direction + " positions TP: " + (string)_modifyPositionsPrice + " PnL: " + (string)TradeHelper::PositionsPnL(_modifyPositionsPrice, _modifyPositionsDirection) + " " + AccountInfoString(ACCOUNT_CURRENCY);
+   if(!tpsl) return "Modify " + direction + " positions SL: " + (string)_modifyPositionsPrice+ " PnL: " + (string)TradeHelper::PositionsPnL(_modifyPositionsPrice, _modifyPositionsDirection) + " " + AccountInfoString(ACCOUNT_CURRENCY);
+   return "Modify positions";
 }
 void Application::Init(double riskValue1,double riskValue2,double riskValue3,double riskValue4,double riskValue5,bool loadVisualChartSettings,color pendingLevelColor,int pendingLevelLineWidth,color pendingLabelColor,color stoplossLevelColor,int stoplossLevelLineWidth,color stoplossLabelColor,color modifyPositionsLevelColor,int modifyPositionsLevelLineWidth,color modifyPositionsLabelColor){
    _riskValue1 = riskValue1;
@@ -113,10 +164,12 @@ void Application::Init(double riskValue1,double riskValue2,double riskValue3,dou
    _pendingOrderPrice = 0;
    _modifyPositionsPrice = 0;
    _slPrice = 0;
+   _modifyPositionsFlagTpSl = 0;
    if(loadVisualChartSettings) setInitalVisualChartSettings();
    PlacingPendingOrderLevel = false;
    PlacingStoplossLevel = false;
    PlacingModifyPositionsLevel = false;
+   _modifyPositionsDirection = -1;
    _chartButtons.CreateChartButtons();
 }
 void Application::OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam){
@@ -124,6 +177,7 @@ void Application::OnEvent(const int id,const long &lparam,const double &dparam,c
    _pendingOrderLevel.OnEvent(id, lparam, dparam, sparam);
    _stopLossLevel.OnEvent(id, lparam, dparam, sparam);
    _modifyPositionsLevel.OnEvent(id, lparam, dparam, sparam);
+   _dialogModifyPositionsDirection.OnEvent(id, lparam, dparam, sparam);
    if(id == CHARTEVENT_CLICK){
       if(PlacingPendingOrderLevel) {
          if(_modifyPositionsLevel.IsLevelExist()){
@@ -156,6 +210,10 @@ void Application::OnEvent(const int id,const long &lparam,const double &dparam,c
          PlacingModifyPositionsLevel = false;
          _modifyPositionsPrice = _modifyPositionsLevel.GetPrice();
          _modifyPositionsLevel.IsDragable = true;
+         updateModifyPositionsDirection();
+         updateLevelsText();
+         ChartRedraw(0);
+         return;
       }
    }
    if(id > CHARTEVENT_CUSTOM){
@@ -167,11 +225,15 @@ void Application::OnEvent(const int id,const long &lparam,const double &dparam,c
          if(sparam == StopLossLevel) _slPrice = dparam;
          if(sparam == ModifyPositionsLevel) _modifyPositionsPrice = dparam;
       }
-      if(event == UpdateTextLevel_EVENT)
-         if(sparam == PendingOrderLevel || sparam == StopLossLevel) updateLevelsText();   
+      if(event == UpdateTextLevel_EVENT) updateLevelsText();    
    }
 }
 void Application::Deinit(void){
+   _chartButtons.Delete();
+   _pendingOrderLevel.Delete();
+   _stopLossLevel.Delete();
+   _modifyPositionsLevel.Delete();
+   _dialogModifyPositionsDirection.Delete();
 }
 void Application::OnTradeEvent(void){
    _chartButtons.OnTradeEvent();
@@ -188,6 +250,9 @@ double Application::GetStoplossPrice(void){
 double Application::GetModifyPositionsPrice(void){
    return _modifyPositionsPrice;
 }
+int Application::GetModifyPositionsFlagTpSl(void){
+   return _modifyPositionsFlagTpSl;
+}
 bool Application::GetRiskValues(double &riskValues[]){
    if(ArrayResize(riskValues, 5) == -1) return false;
    riskValues[0] = _riskValue1;
@@ -199,6 +264,22 @@ bool Application::GetRiskValues(double &riskValues[]){
 }
 void Application::SetRiskPersent(double value){
    _riskPersent = value;
+}
+ENUM_POSITION_TYPE Application::GetModifyPositionsDirection(void){
+   return _modifyPositionsDirection;
+}
+void Application::SetModifyPositionsDirection(ENUM_POSITION_TYPE value){
+   _modifyPositionsDirection = value;
+}
+void Application::updateModifyPositionsDirection(void){
+   if(_modifyPositionsPrice == 0) return;
+   int buys, sells;
+   TradeHelper::CountOpenedBuysAndSellsPositions(buys, sells);
+   Print("b: ", buys, " s: ", sells);
+   if(buys > 0 && sells == 0) SetModifyPositionsDirection(POSITION_TYPE_BUY);
+   if(buys == 0 && sells > 0) SetModifyPositionsDirection(POSITION_TYPE_SELL);
+   if(buys > 0 && sells > 0) _dialogModifyPositionsDirection.CreateModifyPositionsDialog(ModifyPositionsDirectionDialog, "Opened buys and sells positions on " + _Symbol+ ".Chouse positions direction to modify.");
+   Print(_modifyPositionsDirection);
 }
 bool Application::setInitalVisualChartSettings(void){
 if(ChartSetInteger(0, CHART_COLOR_BACKGROUND, C'20,23,23') &&
