@@ -239,6 +239,23 @@ void TradeLevel::OnEvent(const int id,const long &lparam,const double &dparam,co
       deleteSelectRiskButtons();
       }
    }
+   if(id == CHARTEVENT_CHART_CHANGE){
+      if(sparam == ""){
+         if(lparam == 1 || lparam == 16){
+            if(IsLevelExist()){
+               int xDistance_Mover = Helper::IsObjectCreated(_moverButtonName) ? ((int)ObjectGetInteger(0, _moverButtonName, OBJPROP_XDISTANCE)) + 35: 0;
+               int yDistance_Mover = Helper::IsObjectCreated(_moverButtonName) ? ((int)ObjectGetInteger(0, _moverButtonName, OBJPROP_YDISTANCE)) + 8: 0;
+               double price = 0;
+               datetime time = 0;
+               int w = 0;
+               ChartXYToTimePrice(0, xDistance_Mover, yDistance_Mover, w, time, price );
+               deleteLine();
+               createLine(time, price);
+               ChartRedraw(0);
+            }
+         }
+      }
+   }
 }
 bool TradeLevel::Create(string objectName, long lparam, double dparam, int type, color levelColor, int lineWidth, color labelColor){
    if(Helper::IsObjectCreated(objectName)) return false;

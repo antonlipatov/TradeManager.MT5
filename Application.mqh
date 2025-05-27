@@ -137,7 +137,7 @@ string Application::generateStoplossLevelText(void){
    double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * risk / 100;
    string accountCurrency = AccountInfoString(ACCOUNT_CURRENCY);
    double lots = TradeHelper::CalculateLotSize(entryPrice, slPrice, risk);
-   return "SL: " + (string)slPrice + " "+ (string)lots + " lots " + (string)riskMoney + " " +  accountCurrency;
+   return "SL: " + (string)NormalizeDouble(slPrice, _Digits) + " "+ (string)NormalizeDouble(lots, 2) + " lots " + (string)NormalizeDouble(riskMoney,2) + " " +  accountCurrency;
 }
 string  Application::generateModifyPositionsLevelText(bool tpsl){
    string direction = _modifyPositionsDirection == POSITION_TYPE_BUY ? "buy": "sell";
