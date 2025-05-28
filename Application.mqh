@@ -1,13 +1,18 @@
 //+------------------------------------------------------------------+
 //|                                                  Application.mqh |
 //+------------------------------------------------------------------+
+#include "Helper.mqh/"
+#include "TradeHelper.mqh/"
 #include "ChartButtons.mqh/"
+#include "ChartLabels.mqh/"
 #include  "TradeLevel.mqh/"
 #include  "DialogWindow.mqh/"
 #define  PendingOrderLevel "PendingOrderLevel"
 #define  StopLossLevel "StopLossLevel"
 #define  ModifyPositionsLevel "ModifyPositionsLevel"
 #define  ModifyPositionsDirectionDialog "ModifyPositionsDirectionDialog"
+#define  SpreadLabel "SpreadLabel"
+#define  PositionsQtLabel "PositionsQtLabel"
 class Application{
    private:
       double _riskValue1;
@@ -35,21 +40,44 @@ class Application{
       color _modifyPositionsLabelColor;
       ENUM_POSITION_TYPE _modifyPositionsDirection;
       int _modifyPositionsFlagTpSl;
+      bool _showPositionsQtLabel;
+      bool _showSpread;
+      ChartLabel _lblSpread;
+      ChartLabel _lblPositionsQt;
       bool setInitalVisualChartSettings();
       bool updateLevelsText();
       string generateStoplossLevelText();
       string generateModifyPositionsLevelText(bool tpsl);
       void updateModifyPositionsDirection();
+      void showSpreadOnChart();
+      void showPositionsQtOnChart();
    public:
       bool PlacingPendingOrderLevel;
       bool PlacingStoplossLevel;
       bool PlacingModifyPositionsLevel;
       Application();
       ~Application();
-      void Init(double riskValue1, double riskValue2, double riskValue3, double riskValue4, double riskValue5, bool loadVisualChartSettings, color pendingLevelColor, int pendingLevelLineWidth, color pendingLabelColor, color stoplossLevelColor, int stoplossLevelLineWidth, color stoplossLabelColor, color modifyPositionsLevelColor, int modifyPositionsLevelLineWidth, color modifyPositionsLabelColor);
+      void Init(double riskValue1, 
+                double riskValue2, 
+                double riskValue3, 
+                double riskValue4, 
+                double riskValue5, 
+                bool loadVisualChartSettings, 
+                color pendingLevelColor, 
+                int pendingLevelLineWidth, 
+                color pendingLabelColor, 
+                color stoplossLevelColor, 
+                int stoplossLevelLineWidth, 
+                color stoplossLabelColor, 
+                color modifyPositionsLevelColor, 
+                int modifyPositionsLevelLineWidth, 
+                color modifyPositionsLabelColor,
+                bool showPositionsQtLabel,
+                bool showSpread);
       void OnEvent(const int id,const long& lparam,const double& dparam,const string& sparam);
       void Deinit();
       void OnTradeEvent();
+      void Tick();
       double GetRiskPersent();
       double GetPendingOrderPrice();
       double GetStoplossPrice();
@@ -145,7 +173,23 @@ string  Application::generateModifyPositionsLevelText(bool tpsl){
    if(!tpsl) return "Modify " + direction + " positions SL: " + (string)_modifyPositionsPrice+ " PnL: " + (string)TradeHelper::PositionsPnL(_modifyPositionsPrice, _modifyPositionsDirection) + " " + AccountInfoString(ACCOUNT_CURRENCY);
    return "Modify positions";
 }
-void Application::Init(double riskValue1,double riskValue2,double riskValue3,double riskValue4,double riskValue5,bool loadVisualChartSettings,color pendingLevelColor,int pendingLevelLineWidth,color pendingLabelColor,color stoplossLevelColor,int stoplossLevelLineWidth,color stoplossLabelColor,color modifyPositionsLevelColor,int modifyPositionsLevelLineWidth,color modifyPositionsLabelColor){
+void Application::Init(double riskValue1,
+                       double riskValue2,
+                       double riskValue3,
+                       double riskValue4,
+                       double riskValue5,
+                       bool loadVisualChartSettings,
+                       color pendingLevelColor,
+                       int pendingLevelLineWidth,
+                       color pendingLabelColor,
+                       color stoplossLevelColor,
+                       int stoplossLevelLineWidth,
+                       color stoplossLabelColor,
+                       color modifyPositionsLevelColor,
+                       int modifyPositionsLevelLineWidth,
+                       color modifyPositionsLabelColor,
+                       bool showPositionsQtLabel,
+                       bool showSpread){
    _riskValue1 = riskValue1;
    _riskValue2 = riskValue2;
    _riskValue3 = riskValue3;
@@ -165,12 +209,16 @@ void Application::Init(double riskValue1,double riskValue2,double riskValue3,dou
    _modifyPositionsPrice = 0;
    _slPrice = 0;
    _modifyPositionsFlagTpSl = 0;
+   _showPositionsQtLabel = showPositionsQtLabel;
+   _showSpread = showSpread;
    if(loadVisualChartSettings) setInitalVisualChartSettings();
    PlacingPendingOrderLevel = false;
    PlacingStoplossLevel = false;
    PlacingModifyPositionsLevel = false;
    _modifyPositionsDirection = -1;
    _chartButtons.CreateChartButtons();
+   showSpreadOnChart();
+   showPositionsQtOnChart();
 }
 void Application::OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam){
     _chartButtons.OnEvent(id, lparam, dparam, sparam);
@@ -227,6 +275,12 @@ void Application::OnEvent(const int id,const long &lparam,const double &dparam,c
       }
       if(event == UpdateTextLevel_EVENT) updateLevelsText();    
    }
+   if(id == CHARTEVENT_CHART_CHANGE){
+      _lblSpread.Delete();
+      showSpreadOnChart();
+      _lblPositionsQt.Delete();
+      showPositionsQtOnChart();
+   }
 }
 void Application::Deinit(void){
    _chartButtons.Delete();
@@ -234,9 +288,15 @@ void Application::Deinit(void){
    _stopLossLevel.Delete();
    _modifyPositionsLevel.Delete();
    _dialogModifyPositionsDirection.Delete();
+   _lblSpread.Delete();
+   _lblPositionsQt.Delete();
 }
 void Application::OnTradeEvent(void){
    _chartButtons.OnTradeEvent();
+   showPositionsQtOnChart();
+}
+void Application::Tick(void){
+   if(_lblSpread.IsLabelExist()) _lblSpread.UpdateText("Spread: " +(string)TradeHelper::GetSpread());
 }
 double Application::GetRiskPersent(void){
    return _riskPersent;
@@ -280,6 +340,33 @@ void Application::updateModifyPositionsDirection(void){
    if(buys == 0 && sells > 0) SetModifyPositionsDirection(POSITION_TYPE_SELL);
    if(buys > 0 && sells > 0) _dialogModifyPositionsDirection.CreateModifyPositionsDialog(ModifyPositionsDirectionDialog, "Opened buys and sells positions on " + _Symbol+ ".Chouse positions direction to modify.");
    Print(_modifyPositionsDirection);
+}
+void Application::showSpreadOnChart(void){
+   if(!_showSpread) return;
+   int spread = TradeHelper::GetSpread();
+   if(spread == -1) return;
+   int x = (int)ChartGetInteger(0,CHART_WIDTH_IN_PIXELS) - 140;
+   int y = (int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS) - 30; 
+   _lblSpread.Create(SpreadLabel, x, y, "Spread: " +(string)spread, 10);
+}
+void Application::showPositionsQtOnChart(void){
+   if(!_showPositionsQtLabel) return;
+   bool openedPositions = (TradeHelper::CountOpenPositions() > 0)? true: false;
+   if(TradeHelper::CountOpenPositions() > 0){ 
+      int x = 10 ; 
+      int y = (int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS) - 35 ;
+      int buysQt = 0, sellsQt = 0;
+      double buysVol = 0, sellsVol = 0;
+      TradeHelper::OpenedPositionsQtyAndVol(buysQt, sellsQt, buysVol, sellsVol);
+      string qtVol = ((buysQt > 0)? ((string)buysQt  + ":" + (string)buysVol): ("-:--")) + " / " + ((sellsQt > 0)? ((string)sellsQt  + ":" + (string)sellsVol): ("-:--"));
+      if(!_lblPositionsQt.IsLabelExist())
+         _lblPositionsQt.Create(PositionsQtLabel, x, y, qtVol, 14);
+      _lblPositionsQt.UpdateText(qtVol);
+      ChartRedraw(0);
+   }
+   if(TradeHelper::CountOpenPositions() <= 0)
+      if(_lblPositionsQt.IsLabelExist())
+         _lblPositionsQt.Delete();
 }
 bool Application::setInitalVisualChartSettings(void){
 if(ChartSetInteger(0, CHART_COLOR_BACKGROUND, C'20,23,23') &&

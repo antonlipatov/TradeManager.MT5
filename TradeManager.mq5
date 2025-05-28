@@ -1,8 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                 TradeManager.mq5 |
 //+------------------------------------------------------------------+
-#include "Helper.mqh/"
-#include "TradeHelper.mqh/"
 #include  "Application.mqh/"
 
 input group "Visual chart settings:"
@@ -17,12 +15,15 @@ input color inputStoplossLabelColor = clrWhite; //Stoploss level text color
 input color inputModifyPositionsColor = clrGray; //Modify positions level color
 input int inputModifyPositionsLineWidth = 1; //Modify positions level line width
 input color inputModifyPositionsLabelColor = clrWhite; //Modify positions level text color
-input group "Risk per trade:"
+input group "Risk % per trade:"
 input double inputRisk1 = 0.1; //Risk value 1
 input double inputRisk2 = 0.25; //Risk value 2
 input double inputRisk3 = 0.5; //Risk value 3*
 input double inputRisk4 = 1.0; //Risk value 4
 input double inputRisk5 = 1.5; //Risk value 5
+input group "Text information on chart:"
+input bool inputShowPositionsQtLabel = true; //Show opened positions quantity and volume
+input bool inputShowSpread = true; //Show spread
 
 Application app;
 
@@ -41,7 +42,9 @@ int OnInit(){
             inputStoplossLabelColor,
             inputModifyPositionsColor,
             inputModifyPositionsLineWidth,
-            inputModifyPositionsLabelColor);
+            inputModifyPositionsLabelColor,
+            inputShowPositionsQtLabel,
+            inputShowSpread);
    return(INIT_SUCCEEDED);
 }
 void OnDeinit(const int reason){
@@ -52,4 +55,7 @@ void OnTrade(void){
 }
 void OnChartEvent(const int id,const long& lparam,const double& dparam,const string& sparam){
    app.OnEvent(id, lparam, dparam, sparam);  
+}
+void OnTick(void){
+   app.Tick();
 }

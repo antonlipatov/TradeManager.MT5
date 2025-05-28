@@ -5,7 +5,7 @@
 #include  <Trade/OrderInfo.mqh>
 #include  <Trade/PositionInfo.mqh>
 #include  <Trade/AccountInfo.mqh>
- #include <Trade\SymbolInfo.mqh>
+ #include <Trade/SymbolInfo.mqh>
 #include  <Expert\Money\MoneyFixedRisk.mqh>
 class TradeHelper{
    private:
@@ -25,6 +25,8 @@ class TradeHelper{
       static bool SendPendingOrder(double orderPrice, double slPrice, double riskPercent);
       static bool ModifyPositions(double price, ENUM_POSITION_TYPE positionType, int flagTpSl);
       static double NormalizePrice(const double price);
+      static int GetSpread();
+      static bool OpenedPositionsQtyAndVol(int& buyPositionsQt, int& sellPositionsQt, double& buyPositionsVol, double& sellPositionsVol);
 };
 TradeHelper::TradeHelper(){
 }
@@ -282,4 +284,35 @@ double TradeHelper::NormalizePrice(const double price){
    if(tickSize!=0)
       return(NormalizeDouble(MathRound(price/tickSize)*tickSize,digits));
    return(NormalizeDouble(price,digits));
+}
+int TradeHelper::GetSpread(void){
+   CSymbolInfo info;
+   info.Name(_Symbol);
+   if(info.SpreadFloat()) return info.Spread();
+   return -1;
+}
+bool TradeHelper::OpenedPositionsQtyAndVol(int &buyPositionsQt,
+                                           int &sellPositionsQt,
+                                           double &buyPositionsVol,
+                                           double &sellPositionsVol){
+   if(PositionsTotal() == 0) return false;                                         
+   for(int i = PositionsTotal()-1; i >= 0; i--){
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) {
+         Print(__FUNCTION__, " -> Error getting position #", i, ", error: ", GetLastError());
+         continue;
+      }
+      string positionSymbol = PositionGetString(POSITION_SYMBOL);
+      if(positionSymbol == _Symbol){
+         if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY){
+            buyPositionsQt++;
+            buyPositionsVol =buyPositionsVol + PositionGetDouble(POSITION_VOLUME);
+         }
+         if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL){
+            sellPositionsQt++;
+            sellPositionsVol = sellPositionsVol + PositionGetDouble(POSITION_VOLUME);
+         }
+      }
+   }
+   return true;
 }
