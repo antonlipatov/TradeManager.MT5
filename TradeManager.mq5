@@ -5,6 +5,8 @@
 
 input group "Visual chart settings:"
 input bool inputEnableCustomChartSettings = true; //Enable custom visual chart settings
+input bool inputShowWatermark = true; //Show watermark
+input color inputWatermarkLabelColor = C'90,90,90'; //Watermark label color
 input group "Visual trade levels settings:"
 input color inputPendingOrderColor = clrGold; //Pending order level color
 input int inputPendingOrderLineWidth = 1; //Pending order level line width
@@ -52,7 +54,9 @@ int OnInit(){
             inputShowStopLevels,
             inputStopLevelUpLineColor,
             inputStopLevelDownLineColor,
-            inputStopLevelLineWidth);
+            inputStopLevelLineWidth,
+            inputShowWatermark,
+            inputWatermarkLabelColor);
    return(INIT_SUCCEEDED);
 }
 void OnDeinit(const int reason){
