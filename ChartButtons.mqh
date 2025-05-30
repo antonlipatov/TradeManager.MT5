@@ -34,6 +34,16 @@ class ChartButtons{
       bool createCancelOrdersButton();
       bool createClosePositionsButton();
       bool createModifyPositionsButton();
+      bool createButtonHelper(CButton &button, 
+                              string name, 
+                              string textCollapsed, 
+                              string textExpanded, 
+                              int xOffsetCollapsed, 
+                              int xOffsetExpanded, 
+                              int widthCollapsed, 
+                              int widthExpanded, 
+                              color bgColor, 
+                              color textColor = clrBlack);
       void pendingOrderButtonClick();
       void cancelOrdersButtonClick();
       void closePositionsButtonClick();
@@ -130,58 +140,16 @@ void ChartButtons::OnTradeEvent(void){
    }
 }
 bool ChartButtons::createPendingOrderButton(void){
-   if(!Helper::IsObjectCreated(PendingOrderButton)){
-      if(!Helper::IsObjectCreated(DotButton)) return false;
-      if(_buttonsCollapsed){
-         _btnPendingOrder.Create(0, PendingOrderButton, 0, (_btnDot.Left() +35),_btnDot.Top(),((_btnDot.Left() +35) + 35),(_btnDot.Top() + 25));
-         _btnPendingOrder.Text("PO");
-      }
-      else if(!_buttonsCollapsed){
-         _btnPendingOrder.Create(0, PendingOrderButton, 0, (_btnDot.Left() +35),_btnDot.Top(),((_btnDot.Left() +35) + 100),(_btnDot.Top() + 25));
-         _btnPendingOrder.Text("Pending");
-      }
-      _btnPendingOrder.ColorBackground(clrWhite);
-      ChartRedraw(0);
-      return true;
-   }   
-   return false;
+   return createButtonHelper(_btnPendingOrder, PendingOrderButton, "PO", "Pending", 0, 0, 35, 100, clrWhite);
 }
 bool ChartButtons::createCancelOrdersButton(void){
-   if(!Helper::IsObjectCreated(CancelOrdersButton)){
-      if(!Helper::IsObjectCreated(DotButton)) return false;
-      if(_buttonsCollapsed){
-         _btnCancelOrders.Create(0, CancelOrdersButton, 0, ((_btnDot.Left() +35) + 40), _btnDot.Top(), ((_btnDot.Left() +35) + 75), (_btnDot.Top() + 25));
-         _btnCancelOrders.Text("CO");
-      }
-      else if(!_buttonsCollapsed){
-         _btnCancelOrders.Create(0, CancelOrdersButton, 0, ((_btnDot.Left() +35) + 105), _btnDot.Top(), ((_btnDot.Left() +35) + 245), (_btnDot.Top() + 25));
-         _btnCancelOrders.Text("Cancel Orders");
-      }      
-      _btnCancelOrders.ColorBackground(clrLightCoral);
-      ChartRedraw(0);
-      return true;
-   }
-   return false;
+   return createButtonHelper(_btnCancelOrders, CancelOrdersButton, "CO", "Cancel Orders", 40, 105, 35, 140, clrLightCoral);
 }
 bool ChartButtons::createClosePositionsButton(void){
-   if(!Helper::IsObjectCreated(ClosePositionsButton)){
-      if(!Helper::IsObjectCreated(DotButton)) return false;
-      if(_buttonsCollapsed){
-         _btnClosePositions.Create(0, ClosePositionsButton, 0, ((_btnDot.Left() +35) + 80), _btnDot.Top(), ((_btnDot.Left() +35) + 115),(_btnDot.Top() + 25));
-         _btnClosePositions.Text("CP");
-      }
-      else if(!_buttonsCollapsed){
-         _btnClosePositions.Create(0, ClosePositionsButton, 0, ((_btnDot.Left() +35) + 250), _btnDot.Top(), ((_btnDot.Left() +35) + 390),(_btnDot.Top() + 25));
-         _btnClosePositions.Text("Close Positions");
-      }
-      _btnClosePositions.Color(clrWhite);
-      _btnClosePositions.ColorBackground(clrDarkRed);
-      ChartRedraw(0);
-      return true;
-   }
-   return false;
+   return createButtonHelper(_btnClosePositions, ClosePositionsButton, "CP", "Close Positions", 80, 250, 35, 140, clrDarkRed, clrWhite);
 }
 bool ChartButtons::createModifyPositionsButton(void){
+   return createButtonHelper(_btnModifyPositions, ModifyPositionsButton, "MP", "Modify Positions", 120, 395, 35, 150, clrWheat);
    if(!Helper::IsObjectCreated(ModifyPositionsButton)){
       if(!Helper::IsObjectCreated(DotButton)) return false;
       if(_buttonsCollapsed){
@@ -204,6 +172,37 @@ bool ChartButtons::createDotButton(void){
       _btnDot.Create(0, DotButton, 0, 365,5,395,30);
       _btnDot.ColorBackground(clrGold);
       updateDotButtonText();
+      ChartRedraw(0);
+      return true;
+   }
+   return false;
+}
+bool ChartButtons::createButtonHelper(CButton &button,
+                                      string name,
+                                      string textCollapsed,
+                                      string textExpanded,
+                                      int xOffsetCollapsed,
+                                      int xOffsetExpanded,
+                                      int widthCollapsed,
+                                      int widthExpanded,
+                                      color bgColor,color textColor=0){
+   if(!Helper::IsObjectCreated(name)){
+      if(!Helper::IsObjectCreated(DotButton)) return false;
+      int xPosition, width;
+      string text;
+      if(_buttonsCollapsed) {
+         xPosition = _btnDot.Left() + 35 + xOffsetCollapsed;
+         width = widthCollapsed;
+         text = textCollapsed;
+      } else {
+         xPosition = _btnDot.Left() + 35 + xOffsetExpanded;
+         width = widthExpanded;
+         text = textExpanded;
+      }
+      button.Create(0, name, 0, xPosition, _btnDot.Top(), xPosition + width, _btnDot.Top() + 25);
+      button.Text(text);
+      button.ColorBackground(bgColor);
+      if (textColor != clrNONE) button.Color(textColor);
       ChartRedraw(0);
       return true;
    }
