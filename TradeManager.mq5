@@ -26,6 +26,7 @@ input double inputRisk5 = 1.5; //Risk value 5
 input group "Text information on chart:"
 input bool inputShowPositionsQtLabel = true; //Show opened positions quantity and volume
 input bool inputShowSpread = true; //Show spread
+input color inputInfoLabelsColor = clrWhite; //Labels color
 input group "Stop level:"
 input bool inputShowStopLevels = true; //Show stop levels
 input color inputStopLevelUpLineColor = clrLightCoral; //Up line color
@@ -56,7 +57,8 @@ int OnInit(){
             inputStopLevelDownLineColor,
             inputStopLevelLineWidth,
             inputShowWatermark,
-            inputWatermarkLabelColor);
+            inputWatermarkLabelColor,
+            inputInfoLabelsColor);
    return(INIT_SUCCEEDED);
 }
 void OnDeinit(const int reason){

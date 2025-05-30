@@ -25,8 +25,8 @@ class StopLevel{
 StopLevel::StopLevel(){}
 StopLevel::~StopLevel(){}
 bool StopLevel::Create(color upLineColor, color downLineColor, int lineWidth){
-   if(_stopLevel < 3) return false;
    updatePrices();
+   if(_stopLevel < 3) return false;
    _stopLevelUpLineColor = upLineColor;
    _stopLevelDownLineColor = downLineColor;
    _stopLevelLineWidth = lineWidth;

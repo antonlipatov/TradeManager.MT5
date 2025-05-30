@@ -51,6 +51,7 @@ class Application{
       int _stopLevelLineWidth;
       bool _showWatermark;
       color _watermarkLabelColor;
+      color _labelsColor;
       ChartLabel _lblSpread;
       ChartLabel _lblPositionsQt;
       ChartLabel _lblWatermark;
@@ -90,7 +91,8 @@ class Application{
                 color stopLevelDownLineColor,
                 int stopLevelLineWidth,
                 bool showWatermark,
-                color watermarkLabelColor);
+                color watermarkLabelColor,
+                color labelsColor);
       void OnEvent(const int id,const long& lparam,const double& dparam,const string& sparam);
       void Deinit();
       void OnTradeEvent();
@@ -212,7 +214,8 @@ void Application::Init(double riskValue1,
                        color stopLevelDownLineColor,
                        int stopLevelLineWidth,                
                        bool showWatermark,
-                       color watermarkLabelColor){
+                       color watermarkLabelColor,
+                       color labelsColor){
    _riskValue1 = riskValue1;
    _riskValue2 = riskValue2;
    _riskValue3 = riskValue3;
@@ -240,6 +243,7 @@ void Application::Init(double riskValue1,
    _stopLevelLineWidth = stopLevelLineWidth;
    _showWatermark = showWatermark;
    _watermarkLabelColor = watermarkLabelColor;
+   _labelsColor = labelsColor;
    if(loadVisualChartSettings) setInitalVisualChartSettings();
    PlacingPendingOrderLevel = false;
    PlacingStoplossLevel = false;
@@ -384,7 +388,7 @@ void Application::showSpreadOnChart(void){
    if(spread == -1) return;
    int x = (int)ChartGetInteger(0,CHART_WIDTH_IN_PIXELS) - 140;
    int y = (int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS) - 30; 
-   _lblSpread.Create(SpreadLabel, x, y, "Spread: " + (string)spread, 10, clrWhite);
+   _lblSpread.Create(SpreadLabel, x, y, "Spread: " + (string)spread, 10, _labelsColor);
 }
 void Application::showPositionsQtOnChart(void){
    if(!_showPositionsQtLabel) return;
@@ -397,7 +401,7 @@ void Application::showPositionsQtOnChart(void){
       TradeHelper::OpenedPositionsQtyAndVol(buysQt, sellsQt, buysVol, sellsVol);
       string qtVol = ((buysQt > 0)? ((string)buysQt  + ":" + (string)buysVol): ("-:--")) + " / " + ((sellsQt > 0)? ("-" + (string)sellsQt  + ":" + (string)sellsVol): ("-:--"));
       if(!_lblPositionsQt.IsLabelExist())
-         _lblPositionsQt.Create(PositionsQtLabel, x, y, qtVol, 14, clrWhite);
+         _lblPositionsQt.Create(PositionsQtLabel, x, y, qtVol, 14, _labelsColor);
       _lblPositionsQt.UpdateText(qtVol);
       ChartRedraw(0);
    }
