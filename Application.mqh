@@ -312,6 +312,8 @@ void Application::OnEvent(const int id,const long &lparam,const double &dparam,c
       showSpreadOnChart();
       _lblPositionsQt.Delete();
       showPositionsQtOnChart();
+      _lblWatermark.Delete();
+      if(_showWatermark) showWatermarkOnChart();
    }
 }
 void Application::Deinit(void){

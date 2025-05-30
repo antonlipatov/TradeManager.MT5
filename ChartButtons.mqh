@@ -10,12 +10,17 @@
 #define ClosePositionsButton "Close Positions Button"
 //modify positions button
 #define ModifyPositionsButton "Modify Positions Button"
+//dot button
+#define DotButton "DotButton"
 class ChartButtons{
    private:
       bool _pendingOrderButtonClicked;
       bool _pendingOrderButtonClickedEvent;
       bool _modifyPositionsButtonClicked;
       bool _modifyPositionsButtonClickedEvent;
+      bool _buttonsCollapsed;
+      //Dot button
+      CButton _btnDot;
       //Set order button
       CButton _btnPendingOrder;
       //Cancel order button
@@ -24,6 +29,7 @@ class ChartButtons{
       CButton _btnClosePositions;
       //modify positions button
       CButton _btnModifyPositions;
+      bool createDotButton();
       bool createPendingOrderButton();
       bool createCancelOrdersButton();
       bool createClosePositionsButton();
@@ -32,10 +38,14 @@ class ChartButtons{
       void cancelOrdersButtonClick();
       void closePositionsButtonClick();
       void modifyPositionsButtonClick();
+      void dotButtonClick();
+      bool deleteDotButton();
       bool deletePendingOrderButton();
       bool deleteCancelOrderButton();
       bool deleteClosePositionsButton();
       bool deleteModifyPositionsButton();
+      void updateDotButtonText();
+      void buttonsCollapseEvent();
    public:
       ChartButtons();
       ~ChartButtons();
@@ -44,17 +54,13 @@ class ChartButtons{
       void CreateChartButtons();
       bool Delete();
 };
-ChartButtons::ChartButtons(){
-   _pendingOrderButtonClicked = false;
-   _pendingOrderButtonClickedEvent = false;
-   _modifyPositionsButtonClicked = false;
-   _modifyPositionsButtonClickedEvent = false;
-}
+ChartButtons::ChartButtons(){}
 ChartButtons::~ChartButtons(){
   Delete();
 }
 void ChartButtons::OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam){
    if(id == CHARTEVENT_OBJECT_CLICK){
+      if(sparam == _btnDot.Name()) dotButtonClick();
       if(sparam == _btnPendingOrder.Name()) pendingOrderButtonClick();
       if(sparam == _btnCancelOrders.Name()) cancelOrdersButtonClick();
       if(sparam == _btnClosePositions.Name()) closePositionsButtonClick();
@@ -85,6 +91,28 @@ void ChartButtons::OnEvent(const int id,const long &lparam,const double &dparam,
          ChartRedraw(0);
       }
    }
+   if(id > CHARTEVENT_CUSTOM){
+      CustomEvents event = (CustomEvents)(id - CHARTEVENT_CUSTOM);
+      if(event== ButtonsCollapse_EVENT){
+         if(Helper::IsObjectCreated(PendingOrderButton)){
+            deletePendingOrderButton();
+            createPendingOrderButton();
+         }
+         if(Helper::IsObjectCreated(CancelOrdersButton)){
+            deleteCancelOrderButton();
+            createCancelOrdersButton();
+         }
+         if(Helper::IsObjectCreated(ClosePositionsButton)){
+            deleteClosePositionsButton();
+            createClosePositionsButton();
+         }
+         if(Helper::IsObjectCreated(ModifyPositionsButton)){
+            deleteModifyPositionsButton();
+            createModifyPositionsButton();
+         }
+         ChartRedraw(0);   
+      }
+   }
 }
 void ChartButtons::OnTradeEvent(void){
    if(TradeHelper::CountOpenOrders() > 0 && !Helper::IsObjectCreated(CancelOrdersButton))
@@ -103,19 +131,33 @@ void ChartButtons::OnTradeEvent(void){
 }
 bool ChartButtons::createPendingOrderButton(void){
    if(!Helper::IsObjectCreated(PendingOrderButton)){
-      _btnPendingOrder.Create(0, PendingOrderButton, 0, 400,5,500,30);
+      if(!Helper::IsObjectCreated(DotButton)) return false;
+      if(_buttonsCollapsed){
+         _btnPendingOrder.Create(0, PendingOrderButton, 0, (_btnDot.Left() +35),_btnDot.Top(),((_btnDot.Left() +35) + 35),(_btnDot.Top() + 25));
+         _btnPendingOrder.Text("PO");
+      }
+      else if(!_buttonsCollapsed){
+         _btnPendingOrder.Create(0, PendingOrderButton, 0, (_btnDot.Left() +35),_btnDot.Top(),((_btnDot.Left() +35) + 100),(_btnDot.Top() + 25));
+         _btnPendingOrder.Text("Pending");
+      }
       _btnPendingOrder.ColorBackground(clrWhite);
-      _btnPendingOrder.Text("Pending");
       ChartRedraw(0);
       return true;
-   }
+   }   
    return false;
 }
 bool ChartButtons::createCancelOrdersButton(void){
    if(!Helper::IsObjectCreated(CancelOrdersButton)){
-      _btnCancelOrders.Create(0, CancelOrdersButton, 0, 505,5,645,30);
+      if(!Helper::IsObjectCreated(DotButton)) return false;
+      if(_buttonsCollapsed){
+         _btnCancelOrders.Create(0, CancelOrdersButton, 0, ((_btnDot.Left() +35) + 40), _btnDot.Top(), ((_btnDot.Left() +35) + 75), (_btnDot.Top() + 25));
+         _btnCancelOrders.Text("CO");
+      }
+      else if(!_buttonsCollapsed){
+         _btnCancelOrders.Create(0, CancelOrdersButton, 0, ((_btnDot.Left() +35) + 105), _btnDot.Top(), ((_btnDot.Left() +35) + 245), (_btnDot.Top() + 25));
+         _btnCancelOrders.Text("Cancel Orders");
+      }      
       _btnCancelOrders.ColorBackground(clrLightCoral);
-      _btnCancelOrders.Text("Cancel Orders");
       ChartRedraw(0);
       return true;
    }
@@ -123,10 +165,17 @@ bool ChartButtons::createCancelOrdersButton(void){
 }
 bool ChartButtons::createClosePositionsButton(void){
    if(!Helper::IsObjectCreated(ClosePositionsButton)){
-      _btnClosePositions.Create(0, ClosePositionsButton, 0, 650,5,790,30);
+      if(!Helper::IsObjectCreated(DotButton)) return false;
+      if(_buttonsCollapsed){
+         _btnClosePositions.Create(0, ClosePositionsButton, 0, ((_btnDot.Left() +35) + 80), _btnDot.Top(), ((_btnDot.Left() +35) + 115),(_btnDot.Top() + 25));
+         _btnClosePositions.Text("CP");
+      }
+      else if(!_buttonsCollapsed){
+         _btnClosePositions.Create(0, ClosePositionsButton, 0, ((_btnDot.Left() +35) + 250), _btnDot.Top(), ((_btnDot.Left() +35) + 390),(_btnDot.Top() + 25));
+         _btnClosePositions.Text("Close Positions");
+      }
       _btnClosePositions.Color(clrWhite);
       _btnClosePositions.ColorBackground(clrDarkRed);
-      _btnClosePositions.Text("Close Positions");
       ChartRedraw(0);
       return true;
    }
@@ -134,17 +183,42 @@ bool ChartButtons::createClosePositionsButton(void){
 }
 bool ChartButtons::createModifyPositionsButton(void){
    if(!Helper::IsObjectCreated(ModifyPositionsButton)){
-      _btnModifyPositions.Create(0, ModifyPositionsButton, 0, 795,5,945,30);
+      if(!Helper::IsObjectCreated(DotButton)) return false;
+      if(_buttonsCollapsed){
+         _btnModifyPositions.Create(0, ModifyPositionsButton, 0, ((_btnDot.Left() +35) + 120), _btnDot.Top(), ((_btnDot.Left() +35) + 155),(_btnDot.Top() + 25));
+         _btnModifyPositions.Text("MP");      
+      }
+      else if(!_buttonsCollapsed){
+         _btnModifyPositions.Create(0, ModifyPositionsButton, 0, ((_btnDot.Left() +35) + 395), _btnDot.Top(), ((_btnDot.Left() +35) + 550), (_btnDot.Top() + 25));
+         _btnModifyPositions.Text("Modify Positions");
+      }
       _btnModifyPositions.Color(clrBlack);
-      _btnModifyPositions.ColorBackground(clrWheat);
-      _btnModifyPositions.Text("Modify Positions");
+      _btnModifyPositions.ColorBackground(clrWheat); 
       ChartRedraw(0);
       return true;
    }
    return false; 
 }
+bool ChartButtons::createDotButton(void){
+   if(!Helper::IsObjectCreated(DotButton)){
+      _btnDot.Create(0, DotButton, 0, 365,5,395,30);
+      _btnDot.ColorBackground(clrGold);
+      updateDotButtonText();
+      ChartRedraw(0);
+      return true;
+   }
+   return false;
+}
+void ChartButtons::updateDotButtonText(void){
+   if(Helper::IsObjectCreated(DotButton)) _buttonsCollapsed? _btnDot.Text(":>") : _btnDot.Text(":<");
+}
 void ChartButtons::CreateChartButtons(void){
-   ChartButtons();
+   _pendingOrderButtonClicked = false;
+   _pendingOrderButtonClickedEvent = false;
+   _modifyPositionsButtonClicked = false;
+   _modifyPositionsButtonClickedEvent = false;
+   _buttonsCollapsed = false;
+   createDotButton();
    createPendingOrderButton();
    if(TradeHelper::CountOpenOrders() > 0) createCancelOrdersButton();
    if(TradeHelper::CountOpenPositions() > 0){
@@ -176,6 +250,17 @@ bool ChartButtons::deleteModifyPositionsButton(void){
    ChartRedraw(0);
    return true;
 }
+bool ChartButtons::deleteDotButton(void){
+   if(!Helper::IsObjectCreated(DotButton)) return false;
+   _btnDot.Destroy();
+   ChartRedraw(0);
+   return true;
+}
+void ChartButtons::dotButtonClick(void){
+   _buttonsCollapsed = !_buttonsCollapsed;
+   updateDotButtonText();
+   buttonsCollapseEvent();
+}
 void ChartButtons::pendingOrderButtonClick(void){
    _pendingOrderButtonClicked = !_pendingOrderButtonClicked;
    _pendingOrderButtonClickedEvent = true;
@@ -197,9 +282,14 @@ void ChartButtons::modifyPositionsButtonClick(void){
    ChartRedraw(0);
 }
 bool ChartButtons::Delete(void){
+   deleteDotButton();
    deletePendingOrderButton();
    deleteCancelOrderButton();
    deleteClosePositionsButton();
    deleteModifyPositionsButton();
    return true;
+}
+void ChartButtons::buttonsCollapseEvent(void){
+   CustomEvents eventId = ButtonsCollapse_EVENT;
+   EventChartCustom(0, (ushort)eventId, (long)_buttonsCollapsed);
 }

@@ -4,7 +4,8 @@
 enum CustomEvents{
    PriceUpdate_EVENT = 410,
    DeleteLevel_EVENT = 220,
-   UpdateTextLevel_EVENT = 420 
+   UpdateTextLevel_EVENT = 420,
+   ButtonsCollapse_EVENT = 510 
 };
 class Helper{
    private:
