@@ -45,6 +45,8 @@ class Application{
       int _modifyPositionsFlagTpSl;
       bool _showPositionsQtLabel;
       bool _showSpread;
+      bool _showPositionsPnl;
+      double _positionsPnl;
       bool _showStopLevels;
       color _stopLevelUpLineColor;
       color _stopLevelDownLineColor;
@@ -63,6 +65,8 @@ class Application{
       void showSpreadOnChart();
       void showPositionsQtOnChart();
       void showWatermarkOnChart();
+      bool setPositionsPnl();
+      void pnlUpdatedEvent();
    public:
       bool PlacingPendingOrderLevel;
       bool PlacingStoplossLevel;
@@ -85,6 +89,7 @@ class Application{
                 int modifyPositionsLevelLineWidth, 
                 color modifyPositionsLabelColor,
                 bool showPositionsQtLabel,
+                bool showPositionsPnl,
                 bool showSpread,
                 bool showStopLevels,
                 color stopLevelUpLineColor,
@@ -208,6 +213,7 @@ void Application::Init(double riskValue1,
                        int modifyPositionsLevelLineWidth,
                        color modifyPositionsLabelColor,
                        bool showPositionsQtLabel,
+                       bool showPositionsPnl,
                        bool showSpread,
                        bool showStopLevels,
                        color stopLevelUpLineColor,
@@ -236,6 +242,8 @@ void Application::Init(double riskValue1,
    _slPrice = 0;
    _modifyPositionsFlagTpSl = 0;
    _showPositionsQtLabel = showPositionsQtLabel;
+   _showPositionsPnl = showPositionsPnl;
+   _positionsPnl = 0;
    _showSpread = showSpread;
    _showStopLevels = showStopLevels;
    _stopLevelUpLineColor = stopLevelUpLineColor;
@@ -257,7 +265,7 @@ void Application::Init(double riskValue1,
    if(_showWatermark) showWatermarkOnChart();
 }
 void Application::OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam){
-    _chartButtons.OnEvent(id, lparam, dparam, sparam);
+   _chartButtons.OnEvent(id, lparam, dparam, sparam);
    _pendingOrderLevel.OnEvent(id, lparam, dparam, sparam);
    _stopLossLevel.OnEvent(id, lparam, dparam, sparam);
    _modifyPositionsLevel.OnEvent(id, lparam, dparam, sparam);
@@ -309,7 +317,8 @@ void Application::OnEvent(const int id,const long &lparam,const double &dparam,c
          if(sparam == StopLossLevel) _slPrice = dparam;
          if(sparam == ModifyPositionsLevel) _modifyPositionsPrice = dparam;
       }
-      if(event == UpdateTextLevel_EVENT) updateLevelsText();    
+      if(event == UpdateTextLevel_EVENT) updateLevelsText();
+      if(event == PnlUpdated_Event) showPositionsQtOnChart();    
    }
    if(id == CHARTEVENT_CHART_CHANGE){
       _lblSpread.Delete();
@@ -336,8 +345,10 @@ void Application::OnTradeEvent(void){
    showPositionsQtOnChart();
 }
 void Application::Tick(void){
-   if(_lblSpread.IsLabelExist()) _lblSpread.UpdateText("Spread: " +(string)TradeHelper::GetSpread());
+   if(_showSpread)
+      if(_lblSpread.IsLabelExist()) _lblSpread.UpdateText("Spread: " +(string)TradeHelper::GetSpread());
    if(_showStopLevels) _stopLevel.Update();
+   if(_showPositionsPnl) setPositionsPnl();
 }
 double Application::GetRiskPersent(void){
    return _riskPersent;
@@ -398,11 +409,17 @@ void Application::showPositionsQtOnChart(void){
       int y = (int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS) - 35 ;
       int buysQt = 0, sellsQt = 0;
       double buysVol = 0, sellsVol = 0;
+      string positionsPnl = "-";
+      if(_showPositionsPnl){
+         if(setPositionsPnl())
+            positionsPnl = string(_positionsPnl) + " " + AccountInfoString(ACCOUNT_CURRENCY);
+      }
       TradeHelper::OpenedPositionsQtyAndVol(buysQt, sellsQt, buysVol, sellsVol);
       string qtVol = ((buysQt > 0)? ((string)buysQt  + ":" + (string)buysVol): ("-:--")) + " / " + ((sellsQt > 0)? ("-" + (string)sellsQt  + ":" + (string)sellsVol): ("-:--"));
+      string labelText = _showPositionsPnl ? (qtVol +" | " + positionsPnl) : qtVol;
       if(!_lblPositionsQt.IsLabelExist())
-         _lblPositionsQt.Create(PositionsQtLabel, x, y, qtVol, 14, _labelsColor);
-      _lblPositionsQt.UpdateText(qtVol);
+         _lblPositionsQt.Create(PositionsQtLabel, x, y, labelText, 14, _labelsColor);
+      _lblPositionsQt.UpdateText(labelText);
       ChartRedraw(0);
    }
    if(TradeHelper::CountOpenPositions() <= 0)
@@ -413,6 +430,19 @@ void Application::showWatermarkOnChart(void){
    int x = (int)ChartGetInteger(0,CHART_WIDTH_IN_PIXELS) /2;
    int y = (int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS) /2; 
    _lblWatermark.Create(WatermarkLabel, x, y, (_Symbol + ", " + StringSubstr(EnumToString(ChartPeriod(0)), 7) ), 25, _watermarkLabelColor);
+}
+bool Application::setPositionsPnl(void){
+   if(PositionsTotal() > 0 && TradeHelper::HasOpenedPositionsByCurrentSymbol()){
+      if(TradeHelper::OpenedPositionsPnL(_positionsPnl)){
+         pnlUpdatedEvent();
+         return true;
+      }
+   } 
+   return false; 
+}
+void Application::pnlUpdatedEvent(void){
+   CustomEvents eventId = PnlUpdated_Event;
+   EventChartCustom(0, (ushort)eventId);
 }
 bool Application::setInitalVisualChartSettings(void){
 if(ChartSetInteger(0, CHART_COLOR_BACKGROUND, C'20,23,23') &&

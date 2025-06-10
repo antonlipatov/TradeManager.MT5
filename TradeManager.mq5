@@ -25,6 +25,7 @@ input double inputRisk4 = 1.0; //Risk value 4
 input double inputRisk5 = 1.5; //Risk value 5
 input group "Text information on chart:"
 input bool inputShowPositionsQtLabel = true; //Show opened positions quantity and volume
+input bool inputShowPositionsPnL = true; //Show positions PnL (if positions quantity and volume showed)
 input bool inputShowSpread = true; //Show spread
 input color inputInfoLabelsColor = clrWhite; //Labels color
 input group "Stop level:"
@@ -51,6 +52,7 @@ int OnInit(){
             inputModifyPositionsLineWidth,
             inputModifyPositionsLabelColor,
             inputShowPositionsQtLabel,
+            inputShowPositionsPnL,
             inputShowSpread,
             inputShowStopLevels,
             inputStopLevelUpLineColor,

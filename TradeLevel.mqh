@@ -77,6 +77,13 @@ class TradeLevel: public CChartObject{
       bool createLine(datetime time,double price);
       bool createMoverButton(int x, int y);
       bool createLabel(int x, int y, string text);
+      bool createLevelButtonHelper(CButton &button, 
+                                   string buttonName,
+                                   color colorText,
+                                   color colorBackground,
+                                   string text,
+                                   int xOffset,
+                                   int width);
       bool createSendOrderButton();
       bool createRiskButton();
       bool createCancelButton();
@@ -99,7 +106,6 @@ class TradeLevel: public CChartObject{
       void updatePriceEvent();
    public:
       TradeLevel();
-      TradeLevel(int type, string name, long lparam, double dparam);
       ~TradeLevel();
       bool Create(string objectName, long lparam, double dparam, int type, color levelColor, int lineWidth, color labelColor);
       bool IsDragable;
@@ -113,9 +119,6 @@ class TradeLevel: public CChartObject{
       bool Delete();
 };
 TradeLevel::TradeLevel(){
-}
-TradeLevel::TradeLevel(int type, string name, long lparam, double dparam){
-   //Create()
 }
 TradeLevel::~TradeLevel(){
    Delete();
@@ -349,32 +352,64 @@ bool TradeLevel::createLabel(int x, int y, string text){
    updateLabelText(text);
    return true;
 }
+bool TradeLevel::createLevelButtonHelper(CButton &button,
+                                         string buttonName,
+                                         color colorText,
+                                         color colorBackground,
+                                         string text,
+                                         int xOffset,
+                                         int width){
+   if(!Helper::IsObjectCreated(buttonName)){
+      if(!Helper::IsObjectCreated(_moverButtonName)) return false;
+      int xPosition = _btnMoverButton.Left() - xOffset;
+      if(Helper::IsObjectCreated(buttonName)) button.Destroy();
+      button.Create(0, buttonName, 0, xPosition, _btnMoverButton.Top() - 2, xPosition + width, _btnMoverButton.Bottom() + 2);
+      button.Text(text);
+      button.ColorBackground(colorBackground);
+      button.Color(colorText);
+      ChartRedraw(0);
+      return true;
+   }
+   return false;
+}
 bool TradeLevel::createCancelButton(){
-   if(!Helper::IsObjectCreated(_moverButtonName)) return false;
-   if(Helper::IsObjectCreated(_cancelButtonName)) _btnCancel.Destroy();
-   _btnCancel.Create(0, _cancelButtonName, 0, (_btnMoverButton.Left() - 30), (_btnMoverButton.Top() - 2), (_btnMoverButton.Right() - 40) , (_btnMoverButton.Bottom() + 2));
-   _btnCancel.ColorBackground(clrRed);
-   _btnCancel.Color(clrWhite);
-   _btnCancel.Text("X"); 
-   return true;
+   return createLevelButtonHelper(_btnCancel,_cancelButtonName,clrWhite,clrRed,"X",25,20);
+   
+   //if(!Helper::IsObjectCreated(_moverButtonName)) return false;
+   //if(Helper::IsObjectCreated(_cancelButtonName)) _btnCancel.Destroy();
+   //_btnCancel.Create(0, _cancelButtonName, 0, (_btnMoverButton.Left() - 30), (_btnMoverButton.Top() - 2), (_btnMoverButton.Right() - 40) , (_btnMoverButton.Bottom() + 2));
+   //_btnCancel.ColorBackground(clrRed);
+   //_btnCancel.Color(clrWhite);
+   //_btnCancel.Text("X"); 
+   //return true;
 }
 bool TradeLevel::createRiskButton(void){
-   if(Helper::IsObjectCreated(_riskButtonName)) _btnRisk.Destroy();
-   if(Helper::IsObjectCreated(_cancelButtonName)){
-      _btnRisk.Create(0, _riskButtonName, 0, (_btnCancel.Left() - 65), (_btnCancel.Top()), (_btnCancel.Right() - 30) , (_btnCancel.Bottom()));
-      _btnRisk.Text((string)app.GetRiskPersent() + " %");
-   }
    _selectingRisk = false;
-   return true;
+   return createLevelButtonHelper(_btnRisk, _riskButtonName, clrBlack , clrLightGray, ((string)app.GetRiskPersent() + " %"), 90, 60);
+
+//   if(Helper::IsObjectCreated(_riskButtonName)) _btnRisk.Destroy();
+//   if(Helper::IsObjectCreated(_cancelButtonName)){
+//      _btnRisk.Create(0, _riskButtonName, 0, (_btnCancel.Left() - 65), (_btnCancel.Top()), (_btnCancel.Right() - 30) , (_btnCancel.Bottom()));
+//      _btnRisk.Text((string)app.GetRiskPersent() + " %");
+//   }
+//   
+//   return true;
 }
 bool TradeLevel::createSendOrderButton(void){
-   if(Helper::IsObjectCreated(_sendOrderButtonName)) _btnSendOrder.Destroy();
-   if(Helper::IsObjectCreated(_cancelButtonName) && !Helper::IsObjectCreated(_riskButtonName))
-      _btnSendOrder.Create(0, _sendOrderButtonName, 0, (_btnCancel.Left() - 55), (_btnCancel.Top()), (_btnCancel.Right() - 30) , (_btnCancel.Bottom()));//20 
-   if(Helper::IsObjectCreated(_cancelButtonName) && Helper::IsObjectCreated(_riskButtonName))
-     _btnSendOrder.Create(0, _sendOrderButtonName, 0, (_btnRisk.Left() - 55), (_btnRisk.Top()), (_btnRisk.Right() - 65) , (_btnRisk.Bottom()));//20  
-   _btnSendOrder.Text("Send");
-   return true;
+   if(Helper::IsObjectCreated(_riskButtonName))
+      return createLevelButtonHelper(_btnSendOrder, _sendOrderButtonName, clrBlack, clrWhite, "Send",155 ,60);
+   else if(!Helper::IsObjectCreated(_riskButtonName))   
+      return createLevelButtonHelper(_btnSendOrder, _sendOrderButtonName, clrBlack, clrWhite, "Send",90 ,60);
+   
+   //if(Helper::IsObjectCreated(_sendOrderButtonName)) _btnSendOrder.Destroy();
+   //if(Helper::IsObjectCreated(_cancelButtonName) && 
+   //   !Helper::IsObjectCreated(_riskButtonName))
+   //      _btnSendOrder.Create(0, _sendOrderButtonName, 0, (_btnCancel.Left() - 55), (_btnCancel.Top()), (_btnCancel.Right() - 30) , (_btnCancel.Bottom()));//20 
+   //if(Helper::IsObjectCreated(_cancelButtonName) && 
+   //   Helper::IsObjectCreated(_riskButtonName))
+   //      _btnSendOrder.Create(0, _sendOrderButtonName, 0, (_btnRisk.Left() - 55), (_btnRisk.Top()), (_btnRisk.Right() - 65) , (_btnRisk.Bottom()));//20  
+   //_btnSendOrder.Text("Send");
+   return false;
 }
 bool TradeLevel::createSelectRiskButtons(void){
    if(_selectingRisk){
@@ -450,6 +485,9 @@ bool TradeLevel::updateLabelText(string value){
 }
 
 bool TradeLevel::addLevelButtons(){
+   deleteCancelButton();
+   deleteRiskButton();
+   deleteSendOrderButton();
    if(_type == 3){
       createCancelButton();
       createSendOrderButton();
@@ -496,6 +534,7 @@ if(_selectingRisk){
          _btnSelectRisk5.Destroy();
          _selectingRisk = false;
          ChartRedraw(0);
+         deleteRiskButton();
          if(!Helper::IsObjectCreated(_riskButtonName)){
          createRiskButton();
          
@@ -515,19 +554,19 @@ bool TradeLevel::deleteCancelButton(void){
 bool TradeLevel::IsLevelExist(void){
    switch(_type){
       case 1 :
-        if(Helper::IsObjectCreated(_lineName) &&
-           Helper::IsObjectCreated(_moverButtonName) &&
-           Helper::IsObjectCreated(_cancelButtonName) &&
-           Helper::IsObjectCreated(_riskButtonName) &&
-           Helper::IsObjectCreated(_sendOrderButtonName)) return true;
+        return (Helper::IsObjectCreated(_lineName) &&
+                Helper::IsObjectCreated(_moverButtonName) &&
+                Helper::IsObjectCreated(_cancelButtonName) &&
+                Helper::IsObjectCreated(_riskButtonName) &&
+                Helper::IsObjectCreated(_sendOrderButtonName));
       case 2 :
-        if(Helper::IsObjectCreated(_lineName) &&
-           Helper::IsObjectCreated(_moverButtonName)) return true;
+        return (Helper::IsObjectCreated(_lineName) &&
+                Helper::IsObjectCreated(_moverButtonName));
       case 3 :
-        if(Helper::IsObjectCreated(_lineName) &&
-           Helper::IsObjectCreated(_moverButtonName) &&
-           Helper::IsObjectCreated(_cancelButtonName) &&
-           Helper::IsObjectCreated(_sendOrderButtonName)) return true;
+        return (Helper::IsObjectCreated(_lineName) &&
+                Helper::IsObjectCreated(_moverButtonName) &&
+                Helper::IsObjectCreated(_cancelButtonName) &&
+                Helper::IsObjectCreated(_sendOrderButtonName));
       default:
         return false;
      }

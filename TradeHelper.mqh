@@ -27,6 +27,8 @@ class TradeHelper{
       static double NormalizePrice(const double price);
       static int GetSpread();
       static bool OpenedPositionsQtyAndVol(int& buyPositionsQt, int& sellPositionsQt, double& buyPositionsVol, double& sellPositionsVol);
+      static bool OpenedPositionsPnL(double& positionsPnl);
+      static bool HasOpenedPositionsByCurrentSymbol();
 };
 TradeHelper::TradeHelper(){
 }
@@ -306,13 +308,44 @@ bool TradeHelper::OpenedPositionsQtyAndVol(int &buyPositionsQt,
       if(positionSymbol == _Symbol){
          if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY){
             buyPositionsQt++;
-            buyPositionsVol =buyPositionsVol + PositionGetDouble(POSITION_VOLUME);
+            buyPositionsVol =NormalizeDouble(buyPositionsVol + PositionGetDouble(POSITION_VOLUME), 2);
+            Print(buyPositionsVol);
          }
          if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL){
             sellPositionsQt++;
-            sellPositionsVol = sellPositionsVol + PositionGetDouble(POSITION_VOLUME);
+            sellPositionsVol = NormalizeDouble(sellPositionsVol + PositionGetDouble(POSITION_VOLUME),2);
          }
       }
    }
    return true;
+}
+bool TradeHelper::OpenedPositionsPnL(double &positionsPnl){
+   if(PositionsTotal() == 0 || !HasOpenedPositionsByCurrentSymbol()) return false;
+   positionsPnl = 0;
+   for(int i = PositionsTotal()-1; i >= 0; i--){
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) {
+         Print(__FUNCTION__, " -> Error getting position #", i, ", error: ", GetLastError());
+         continue;
+      }
+      string positionSymbol = PositionGetString(POSITION_SYMBOL);
+      if(positionSymbol == _Symbol){
+         positionsPnl = NormalizeDouble(positionsPnl + PositionGetDouble(POSITION_PROFIT),2);
+      }
+   }
+   return true;
+}
+bool TradeHelper::HasOpenedPositionsByCurrentSymbol(void){
+   bool result = false;
+   if(PositionsTotal() == 0) return result;
+   for(int i = PositionsTotal()-1; i >= 0; i--){
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) {
+         Print(__FUNCTION__, " -> Error getting position #", i, ", error: ", GetLastError());
+         continue;
+      }
+      string positionSymbol = PositionGetString(POSITION_SYMBOL);
+      if(positionSymbol == _Symbol) result = true;
+   }
+   return result;
 }
