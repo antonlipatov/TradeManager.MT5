@@ -54,6 +54,7 @@ class Application{
       bool _showWatermark;
       color _watermarkLabelColor;
       color _labelsColor;
+      bool _updatingPnl;
       ChartLabel _lblSpread;
       ChartLabel _lblPositionsQt;
       ChartLabel _lblWatermark;
@@ -252,6 +253,7 @@ void Application::Init(double riskValue1,
    _showWatermark = showWatermark;
    _watermarkLabelColor = watermarkLabelColor;
    _labelsColor = labelsColor;
+   _updatingPnl = false;
    if(loadVisualChartSettings) setInitalVisualChartSettings();
    PlacingPendingOrderLevel = false;
    PlacingStoplossLevel = false;
@@ -318,7 +320,10 @@ void Application::OnEvent(const int id,const long &lparam,const double &dparam,c
          if(sparam == ModifyPositionsLevel) _modifyPositionsPrice = dparam;
       }
       if(event == UpdateTextLevel_EVENT) updateLevelsText();
-      if(event == PnlUpdated_Event) showPositionsQtOnChart();    
+      if(event == PnlUpdated_Event) {
+         _updatingPnl = true;
+         showPositionsQtOnChart();
+      }    
    }
    if(id == CHARTEVENT_CHART_CHANGE){
       _lblSpread.Delete();
@@ -403,8 +408,15 @@ void Application::showSpreadOnChart(void){
 }
 void Application::showPositionsQtOnChart(void){
    if(!_showPositionsQtLabel) return;
-   bool openedPositions = (TradeHelper::CountOpenPositions() > 0)? true: false;
-   if(TradeHelper::CountOpenPositions() > 0){ 
+   if(TradeHelper::CountOpenPositions() > 0){
+      if(_updatingPnl){
+         string qtValue = StringSubstr(_lblPositionsQt.GetLabelText(),0, StringFind(_lblPositionsQt.GetLabelText()," | "));
+         TradeHelper::OpenedPositionsPnL(_positionsPnl);
+         _lblPositionsQt.UpdateText(qtValue + " | " + string(_positionsPnl) + " " + AccountInfoString(ACCOUNT_CURRENCY));
+         ChartRedraw(0);
+         _updatingPnl = false;
+         return;
+      } 
       int x = 10 ; 
       int y = (int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS) - 35 ;
       int buysQt = 0, sellsQt = 0;

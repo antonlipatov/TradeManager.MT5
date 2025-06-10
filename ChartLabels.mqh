@@ -18,6 +18,7 @@ class ChartLabel{
       ~ChartLabel();
       bool Create(string objectName, int x, int y, string text, int fontSize, color labelColor);
       bool UpdateText(string value);
+      string GetLabelText();
       bool IsLabelExist();
       bool Delete();
 };
@@ -58,4 +59,7 @@ bool ChartLabel::UpdateText(string value){
    if(Helper::IsObjectCreated(_labelName))
       return ObjectSetString(0, _labelName, OBJPROP_TEXT, value);
    return false; 
+}
+string ChartLabel::GetLabelText(void){
+   return ObjectGetString(0, _labelName, OBJPROP_TEXT);
 }

@@ -309,7 +309,6 @@ bool TradeHelper::OpenedPositionsQtyAndVol(int &buyPositionsQt,
          if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY){
             buyPositionsQt++;
             buyPositionsVol =NormalizeDouble(buyPositionsVol + PositionGetDouble(POSITION_VOLUME), 2);
-            Print(buyPositionsVol);
          }
          if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL){
             sellPositionsQt++;
